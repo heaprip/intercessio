@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    docs-structure:
+      glob: "{AGENTS.md,.agents/**/*.md,docs/**/*.md,scripts/check-docs.sh}"
+      run: ./scripts/check-docs.sh
+    docs-impact:
+      run: ./scripts/check-doc-impact.sh --staged
+
+pre-push:
+  parallel: true
+  commands:
+    docs:
+      run: ./scripts/check-docs.sh
+    test:
+      run: test -z "$(git ls-files '*.go')" || go test ./...
+    vet:
+      run: test -z "$(git ls-files '*.go')" || go vet ./...
