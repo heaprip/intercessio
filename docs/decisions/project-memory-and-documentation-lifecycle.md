@@ -1,7 +1,20 @@
-# ADR-0005: Разделить проектную память и проверять документацию как код
+---
+tags:
+  - adr
+  - решение
+---
+
+# Разделить проектную память и проверять документацию как код
 
 Status: Accepted  
-Deciders: author
+Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
+Accepted by: author  
+Зависит от: —  
+Заменяет: —
+
+> Будет заменено решением
+> [[docs/decisions/documentation-layers|documentation-layers]], как только автор
+> его примет. Каталог `.agents/` уже упразднён этой пересборкой.
 
 ## Context
 
@@ -32,7 +45,7 @@ Deciders: author
 - `.agents/memory` хранит только короткий актуальный snapshot;
 - `docs` хранит продуктовый контекст, язык и архитектурные ограничения;
 - принятые решения существуют как immutable ADR и заменяются новым ADR;
-- `AGENTS.md` задает семантический change protocol;
+- [[AGENTS|AGENTS.md]] задает семантический change protocol;
 - Lefthook локально и будущая CI запускают одинаковые repository scripts;
 - внешние agent tools могут читать эту память, но не создают конкурирующий
   canonical store.

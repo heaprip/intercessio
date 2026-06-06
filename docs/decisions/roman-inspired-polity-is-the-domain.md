@@ -1,7 +1,20 @@
-# ADR-0009: Сделать римско-вдохновленную политию предметной областью
+---
+tags:
+  - adr
+  - решение
+---
+
+# Сделать римско-вдохновленную политию предметной областью
 
 Status: Accepted  
-Deciders: author
+Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
+Accepted by: author  
+Зависит от: —  
+Заменяет: —
+
+> Будет заменено решением
+> [[docs/decisions/stepwise-legislative-game|stepwise-legislative-game]], как только
+> автор его примет. До этого формально действует эта рамка.
 
 ## Context
 
@@ -68,4 +81,5 @@ competence, intercessio, review, decisions и execution составляют п�
 
 ## Links
 
-- Rejected earlier direction: [ADR-0004](0004-roman-names-are-product-metaphor.md)
+- Отклонённое ранее направление:
+  [[docs/decisions/roman-names-in-presentation-only|roman-names-in-presentation-only]]

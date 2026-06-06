@@ -1,7 +1,16 @@
-# ADR-0004: Ограничить римские названия только presentation layer
+---
+tags:
+  - adr
+  - решение
+---
+
+# Ограничить римские названия только presentation layer
 
 Status: Rejected  
-Deciders: author
+Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
+Accepted by: — (решение отклонено)  
+Зависит от: —  
+Заменяет: —
 
 ## Context
 
@@ -25,7 +34,8 @@ capabilities.
 
 ## Decision
 
-Вариант 1 отклонен. Новое решение описано в ADR-0009.
+Вариант 1 отклонён. Новое направление описано в решении
+[[docs/decisions/roman-inspired-polity-is-the-domain|roman-inspired-polity-is-the-domain]].
 
 ## Consequences
 
@@ -47,4 +57,5 @@ capabilities.
 
 ## Links
 
-- Superseding direction: [ADR-0009](0009-roman-inspired-polity-is-the-domain.md)
+- Направление, выбранное взамен:
+  [[docs/decisions/roman-inspired-polity-is-the-domain|roman-inspired-polity-is-the-domain]]

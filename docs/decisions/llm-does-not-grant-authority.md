@@ -1,8 +1,16 @@
-# ADR-0003: LLM не создает права, нормы и полномочия
+---
+tags:
+  - adr
+  - решение
+---
+
+# LLM не создает права, нормы и полномочия
 
 Status: Accepted  
 Proposed by: assistant  
-Accepted by: author
+Accepted by: author  
+Зависит от: —  
+Заменяет: —
 
 ## Context
 

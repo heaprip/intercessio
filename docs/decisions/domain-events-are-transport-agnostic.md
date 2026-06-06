@@ -1,7 +1,16 @@
-# ADR-0002: Отделить доменные события от транспорта
+---
+tags:
+  - adr
+  - решение
+---
+
+# Отделить доменные события от транспорта
 
 Status: Accepted  
-Deciders: author
+Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
+Accepted by: author  
+Зависит от: —  
+Заменяет: —
 
 ## Context
 

@@ -1,7 +1,16 @@
-# ADR-0001: Начать с модульного Go-монолита
+---
+tags:
+  - adr
+  - решение
+---
+
+# Начать с модульного Go-монолита
 
 Status: Accepted  
-Deciders: author
+Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
+Accepted by: author  
+Зависит от: —  
+Заменяет: —
 
 ## Context
 
