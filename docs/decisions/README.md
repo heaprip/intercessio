@@ -1,38 +1,81 @@
-# Architecture Decision Records
+---
+tags:
+  - adr
+  - решение
+---
 
-ADR сохраняет причину дорогого или сквозного решения. Он не является протоколом
+# Решения
+
+Решение сохраняет причину дорогого или сквозного выбора. Это не протокол
 каждого рефакторинга.
+
+Чтобы понять проект, читать это не нужно — для этого есть
+[[docs/guide/01-what-it-is|guide]]. Сюда ходят за ответом на вопрос «почему
+именно так, а не иначе» и «что придётся переделывать, если передумать».
+
+## Идентификатор
+
+Идентификатором является **слаг имени файла**, не номер: путь
+`docs/decisions/<слаг>` в обычном wikilink. Слаг читается прямо в тексте ссылки,
+в отличие от номера, за которым надо идти в индекс.
+
+Порядок выражается полями `Зависит от` и `Заменяет`. Хронологию хранит Git; дат
+в документах нет.
 
 ## Статусы
 
 - `Proposed` — вариант сформулирован, но автор его не принял;
 - `Accepted` — текущее основание проектирования;
 - `Rejected` — рассмотрен и сознательно не выбран;
-- `Superseded` — заменен более новым ADR;
-- `Deprecated` — больше не рекомендуется, замена еще не принята.
+- `Superseded` — заменён более новым решением;
+- `Deprecated` — больше не рекомендуется, замена ещё не принята.
 
 Решение считается принятым только при `Status: Accepted`. Устное обсуждение,
-memory-файл и наличие кода сами по себе статус не меняют.
+запись в guide и наличие кода сами по себе статус не меняют.
 
-Статус `Accepted` проставляет только автор. Помощник заполняет `Proposed by` и
-оставляет `Accepted by` пустым; черновик до принятия живет в `docs/proposals/`.
+**`Accepted` проставляет только автор.** Помощник заполняет `Proposed by` и
+оставляет `Accepted by` пустым. Принятое решение не редактируют задним числом:
+допустимы опечатки, уточнения ссылок и смена статуса, новая логика оформляется
+новым решением, которое указывает, что заменяет.
 
 ## Индекс
 
-| ADR | Статус | Решение |
+| Решение | Статус | Суть |
 | --- | --- | --- |
-| [0001](0001-modular-monolith.md) | Accepted | Один deployable с доменными границами внутри |
-| [0002](0002-domain-events-are-transport-agnostic.md) | Accepted | Доменное событие не зависит от транспорта |
-| [0003](0003-llm-does-not-grant-authority.md) | Accepted | LLM не выдает права и не исполняет необратимые действия |
-| [0004](0004-roman-names-are-product-metaphor.md) | Rejected | Отклонено: ограничить римские названия только presentation layer |
-| [0005](0005-project-memory-and-documentation-lifecycle.md) | Accepted | Разделить оперативную память, долговечные документы и историю решений |
-| [0006](0006-durable-commit-is-a-semantic-contract.md) | Accepted | Определять durable commit через наблюдаемые гарантии |
-| [0007](0007-application-owns-workflow-state.md) | Accepted | Хранить каноническое workflow state в Intercessio |
-| [0008](0008-proto-first-rest-and-grpc-api.md) | Accepted | Proto-first API с REST через gRPC-Gateway |
-| [0009](0009-roman-inspired-polity-is-the-domain.md) | Accepted | Римско-вдохновленная полития является предметной областью |
+| [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Proposed | Предметная область — пошаговая игра о законотворчестве |
+| [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — правило вывода со стратифицированным отрицанием |
+| [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Proposed | Хранятся факты, вычисляются следствия норм |
+| [[docs/decisions/documentation-layers\|documentation-layers]] | Proposed | Документация делится по скорости устаревания |
+| [[docs/decisions/llm-does-not-grant-authority\|llm-does-not-grant-authority]] | Accepted | Модель не создаёт права, нормы и полномочия |
+| [[docs/decisions/modular-monolith\|modular-monolith]] | Accepted | Один deployable с доменными границами внутри |
+| [[docs/decisions/domain-events-are-transport-agnostic\|domain-events-are-transport-agnostic]] | Accepted | Доменное событие не зависит от транспорта |
+| [[docs/decisions/durable-commit-is-a-semantic-contract\|durable-commit-is-a-semantic-contract]] | Accepted | Durable commit определяется гарантиями, а не механизмом |
+| [[docs/decisions/application-owns-workflow-state\|application-owns-workflow-state]] | Accepted | Каноническое состояние процесса принадлежит Intercessio |
+| [[docs/decisions/proto-first-external-api\|proto-first-external-api]] | Accepted | Proto-first API с REST через gRPC-Gateway |
+| [[docs/decisions/roman-inspired-polity-is-the-domain\|roman-inspired-polity-is-the-domain]] | Accepted | Римско-вдохновлённая полития является предметной областью |
+| [[docs/decisions/project-memory-and-documentation-lifecycle\|project-memory-and-documentation-lifecycle]] | Accepted | Разделить оперативную память, документы и историю решений |
+| [[docs/decisions/roman-names-in-presentation-only\|roman-names-in-presentation-only]] | Rejected | Отклонено: римские названия только в presentation layer |
 
-ADR не датируются. Порядок решений выражается полями `Зависит от` и
-`Заменяет`, а не хронологией: даты в этом репозитории не несут информации,
-а хронологию хранит Git.
+## Что здесь требует внимания автора
 
-При добавлении ADR обновить эту таблицу и запустить `scripts/check-docs.sh`.
+Четыре решения имеют статус `Proposed` и ждут подтверждения. Два из них
+заменяют действующие, поэтому до подтверждения репозиторий находится в
+несогласованном состоянии — оно предпочтительнее, чем присвоенная авторитетность:
+
+- `stepwise-legislative-game` заменяет `roman-inspired-polity-is-the-domain`;
+- `documentation-layers` заменяет
+  `project-memory-and-documentation-lifecycle`.
+
+При принятии каждого: поставить `Accepted`, заполнить `Accepted by`, проставить
+заменяемому `Superseded` и строку `Superseded by`, обновить эту таблицу.
+
+**Атрибуция.** Часть принятых решений унаследована с пометкой `Deciders:
+author`, но авторство не подтверждено — у них стоит `Proposed by: не
+подтверждено`. Подтверждены как авторские: `durable-commit-is-a-semantic-contract`,
+`application-owns-workflow-state`, `proto-first-external-api`. Решение
+`llm-does-not-grant-authority` предложено помощником и принято автором явно.
+
+**Долг проверки.** У `llm-does-not-grant-authority` критерий гласит «до принятия
+построить сценарий, где более сильная модель пытается получить выгодный исход за
+пределами компетенции». Сценарий не построен; решение принято. Нужно либо
+построить его, либо переформулировать критерий как последующую проверку.
