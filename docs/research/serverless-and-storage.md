@@ -1,3 +1,8 @@
+---
+tags:
+  - исследование
+---
+
 # Serverless storage, authorization, workflow и API transport
 
 Question: Какие provider capabilities и Go libraries позволяют сохранить
@@ -107,7 +112,7 @@ async consumers. Native gRPC требует подходящего ingress/deplo
 
 ## Applicability to Intercessio
 
-Исследование является основанием ADR-0006, ADR-0007 и ADR-0008. Оно не принимает
+Исследование является основанием решений о durable commit, состоянии процесса и транспорте. Оно не принимает
 cloud provider, event sourcing scope, OpenFGA deployment или форму первого
 workflow.
 
