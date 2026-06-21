@@ -89,6 +89,7 @@ tags:
 | [[docs/concepts/derivation-trace\|Трасса вывода]] (`DerivationTrace`) | Почему у этого человека есть это право |
 | [[docs/concepts/integrity-constraint\|Ограничение целостности]] (`IntegrityConstraint`) | Комбинация выводов, объявленная недопустимой |
 | [[docs/concepts/impact\|Пересчёт затронутых]] (`Impact`) | Разница состояний между двумя версиями корпуса |
+| [[docs/concepts/non-liquet\|Non liquet]] (`NonLiquet`) | Исход «не ясно»: корпус не даёт по делу определённого ответа |
 
 ## Провалы и наблюдение
 

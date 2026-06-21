@@ -78,7 +78,4 @@ LLM-ролей, позднее — аналитика (советы, оптим�
 ## Как читать дальше
 
 Следующие пять глав читаются подряд и не требуют переходов по ссылкам:
-[[docs/guide/02-the-world|мир и ход]] → [[docs/guide/03-how-law-works|как
-устроен закон]] → [[docs/guide/04-what-goes-wrong|что идёт не так]] →
-[[docs/guide/05-how-it-is-built|как это устроено внутри]] →
-[[docs/guide/06-where-we-are|где мы сейчас]].
+[[docs/guide/02-the-world|мир и ход]] → [[docs/guide/03-how-law-works|как устроен закон]] → [[docs/guide/04-what-goes-wrong|что идёт не так]] → [[docs/guide/05-how-it-is-built|как это устроено внутри]] → [[docs/guide/06-where-we-are|где мы сейчас]].
