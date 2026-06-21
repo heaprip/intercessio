@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   commands:
     docs-structure:
-      glob: "{AGENTS.md,.agents/**/*.md,docs/**/*.md,scripts/check-docs.sh}"
+      glob: "{AGENTS.md,README.md,docs/**/*.md,scripts/check-docs.sh}"
       run: ./scripts/check-docs.sh
     docs-impact:
       run: ./scripts/check-doc-impact.sh --staged
