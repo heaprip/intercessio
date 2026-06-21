@@ -13,8 +13,8 @@ tags:
 памяти; выбор инфраструктуры лежит в [[docs/impl/README|impl]] и выбрасывается
 без последствий для этого слоя.
 
-- [[docs/design/deduction|deduction]] — вычислитель: безопасность правил,
-  стратификация, оценка, трасса;
+- [[docs/design/deduction|deduction]] — вычислитель: сила правил, вытеснение,
+  безопасность, оценка, трасса;
 - [[docs/design/entitlement|entitlement]] — единственный ответчик и
   обязательство заменяемости;
 - [[docs/design/corpus-and-facts|corpus-and-facts]] — версии корпуса,

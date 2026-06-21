@@ -85,11 +85,12 @@ tags:
 | --- | --- |
 | [[docs/concepts/entitlement\|Нормативный результат]] (`Entitlement`) | Единственный ответчик: что применимо к случаю в периоде |
 | [[docs/concepts/inference-rule\|Правило вывода]] (`InferenceRule`) | Структурная форма нормы |
-| [[docs/concepts/stratum\|Слой]] (`Stratum`) | Уровень разбиения предикатов, не документов |
+| [[docs/concepts/defeat\|Вытеснение]] (`Defeat`) | Одно правило побеждает другое; так выражается исключение |
 | [[docs/concepts/derivation-trace\|Трасса вывода]] (`DerivationTrace`) | Почему у этого человека есть это право |
 | [[docs/concepts/integrity-constraint\|Ограничение целостности]] (`IntegrityConstraint`) | Комбинация выводов, объявленная недопустимой |
 | [[docs/concepts/impact\|Пересчёт затронутых]] (`Impact`) | Разница состояний между двумя версиями корпуса |
 | [[docs/concepts/non-liquet\|Non liquet]] (`NonLiquet`) | Исход «не ясно»: корпус не даёт по делу определённого ответа |
+| [[docs/concepts/discretion\|Усмотрение]] (`Discretion`) | Пространство, которое норма оставляет должности |
 
 ## Провалы и наблюдение
 

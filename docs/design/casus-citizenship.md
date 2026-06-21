@@ -66,79 +66,77 @@ in_force(d1, 32).
 
 ## Правила вывода
 
+`⇒` — опровержимое правило, `⇝` — defeater: ничего не выводит, только блокирует
+чужой вывод. `¬` в голове означает вывод об отсутствии.
+
 ```
 % выслуга — вычитание над номерами периодов
-tenure(P, N)          :- served(P, From, To), N = To - From.
+r_tenure   served(P, From, To)                        ⇒  tenure(P, To - From)
 
-% C3 — replicatio: заслуга гасит конкретный проступок
-expiated_of(P, O)     :- merit(P, M), covers(M, O).
+% C1 — intentio: общее правило
+r_c1       status(P, peregrinus), tenure(P, N), N >= 25,
+           established(_, tenure_confirmed(P), _, _)  ⇒  entitled(P, civis)
 
-% C2 — exceptio
-blocked_c2(P)         :- offense(P, O), not expiated_of(P, O).
+% C2 — exceptio: исключение
+r_c2       offense(P, O)                              ⇒ ¬entitled(P, civis)
 
-% защита приобретённого — норма конституции A4, а не свойство движка
-vested_protected      :- norm_in_force(a4).
+% C3 — replicatio: возражение на исключение
+r_c3       offense(P, O), merit(P, M), covers(M, O)   ⇒  entitled(P, civis)
 
-% компетенция принадлежит должности
-competent(Off, Kind)  :- responsibility(Off, Kind).
-ultra_vires(Act)      :- performed(Act, _, Off, Kind), not competent(Off, Kind).
+% статус: C1 конститутивна, держится на факте решения, не на основании
+r_status   decision(D, Pt, grant, _, _),
+           petition(Pt, P, citizenship, _), in_force(D, _)  ⇒ status(P, civis)
+r_born     born_to(P, Q), status(Q, civis)            ⇒  status(P, civis)
+r_edict    edict(E, all_free), free(P), in_force(E, _) ⇒ status(P, civis)
 
-% лишение — только по явному основанию
-divested(P, S)        :- revocation(R, P, S), in_force(R, _).
-divested(P, S)        :- strips_vested(N, S), applies_to(N, P),
-                         not vested_protected.
+% лишение
+r_revoke   revocation(R, P, S), in_force(R, _)        ⇒ ¬status(P, S)
+r_strip    strips_vested(N, S), applies_to(N, P)      ⇒ ¬status(P, S)
 
-% C1 конститутивна: статус держится на факте решения, не на основании
-status(P, civis)      :- decision(D, Pt, grant, _, _),
-                         petition(Pt, P, citizenship, _),
-                         in_force(D, _),
-                         not divested(P, civis).
+% A4 — защита приобретённого: норма корпуса, выраженная defeater
+d_a4       norm_in_force(a4)                          ⇝  status(P, S)
 
-% статус по норме напрямую, без дела
-status(P, civis)      :- born_to(P, Q), status(Q, civis).
-status(P, civis)      :- edict(E, all_free), free(P), in_force(E, _).
+% компетенция: закрытость мира — правило по умолчанию
+r_nocomp                                              ⇒ ¬competent(Off, Kind)
+r_comp     responsibility(Off, Kind)                  ⇒  competent(Off, Kind)
+r_ultra    performed(Act, _, Off, Kind),
+           ¬competent(Off, Kind)                      ⇒  ultra_vires(Act)
 
-% C1 — основание прошения
-entitled(P, civis)    :- status(P, peregrinus),
-                         tenure(P, N), N >= 25,
-                         established(_, tenure_confirmed(P), _, _),
-                         not blocked_c2(P).
-
-% права — пучок статуса
-holds_right(P, R)     :- status(P, S), bundle(S, R).
-
-% что связывает право с делом: решение законно, если основание есть
-may_grant(Off, P, S)  :- competent(Off, grant_status), entitled(P, S).
+% права и связь права с делом
+r_rights   status(P, S), bundle(S, R)                 ⇒  holds_right(P, R)
+r_grant    competent(Off, grant_status),
+           entitled(P, S)                             ⇒  may_grant(Off, P, S)
 ```
 
-Последнее правило — то, ради чего существует `entitled`. Без него право на
-гражданство никуда не подключено: претор мог бы выносить решение, не сверяясь с
-основанием, и `C1` не влияла бы ни на что.
+`r_grant` — то, ради чего существует `entitled`. Без него право на гражданство
+никуда не подключено: претор мог бы выносить решение, не сверяясь с основанием,
+и `C1` не влияла бы ни на что.
 
-## Слои стратификации
+## Отношение вытеснения
 
-Слои считаются по графу предикатов. Отрицательные рёбра идут строго вниз.
+```
+r_c3  >  r_c2  >  r_c1
+r_revoke  >  d_a4  >  r_strip
+r_comp  >  r_nocomp
+```
 
-| Слой | Что выводится | Что отрицает |
+| Выше | Ниже | Основание порядка |
 | --- | --- | --- |
-| 0 | факты (`served`, `established`, `petition`, `decision`, `in_force`, `occupies`, `responsibility`, `offense`, `merit`, `covers`, `revocation`, `strips_vested`, `applies_to`, `norm_in_force`, `born_to`, `free`, `edict`, `bundle`, `performed`) | — |
-| 1 | `tenure`, `expiated_of`, `vested_protected`, `competent` | — |
-| 2 | `blocked_c2`, `divested`, `ultra_vires` | `expiated_of`, `vested_protected`, `competent` |
-| 3 | `status` | `divested` |
-| 4 | `entitled`, `holds_right`, `may_grant` | `blocked_c2` |
+| `r_c3` | `r_c2` | цепочка возражений **внутри одного документа** |
+| `r_c2` | `r_c1` | там же |
+| `r_revoke` | `d_a4` | конституция допускает лишение по явному основанию |
+| `d_a4` | `r_strip` | `A4`: приобретённое не отнимается задним числом |
+| `r_comp` | `r_nocomp` | назначение бьёт умолчание «не компетентен» |
 
-`status` рекурсивен положительно — гражданин рождается от гражданина, — и
-рекурсия остаётся внутри слоя. Это допустимо; запрещено только отрицательное
-ребро внутри слоя.
+**Порядок объявлен, а не выведен из уровней документов, и это видно здесь.**
+`C1`, `C2` и `C3` лежат в одном кодексе, и порядок между ними задан напрямую:
+иерархия документов о нём ничего не знает. А `A4` — норма конституции, то есть
+высшего уровня, — стоит **ниже** `r_revoke`. Иерархия документов является одним
+из источников этого отношения, а не самим отношением.
 
-**Разбиение не совпадает с иерархией документов, и это видно прямо здесь.**
-`C1`, `C2` и `C3` лежат в одном кодексе и попадают в слои 4, 2 и 1. Норма
-конституции `A4` даёт `vested_protected` в слое 1 — ниже, чем выведенный из
-кодекса `status` в слое 3. Если бы слои задавались уровнями документов, порядок
-получился бы обратным и вывод сломался бы.
-
-Римская цепочка возражений и стратификация при этом оказались одним и тем же:
-каждый следующий слой опрокидывает предыдущий, порядок задан заранее.
+Незаполненная пара — не ошибка. Если два правила выводят противоположное и
+порядок между ними не объявлен, не выводится ничего: дело получает исход
+[[docs/concepts/non-liquet|non liquet]].
 
 ## Схема предикатов
 
@@ -150,9 +148,9 @@ may_grant(Off, P, S)  :- competent(Off, grant_status), entitled(P, S).
   `applies_to/2`;
 - **о проступках и заслугах:** `offense/2`, `merit/2`, `covers/2`,
   `revocation/3`;
-- **выводимое:** `tenure/2`, `expiated_of/2`, `blocked_c2/1`,
-  `vested_protected/0`, `competent/2`, `ultra_vires/1`, `divested/2`,
-  `entitled/2`, `holds_right/2`, `may_grant/3`.
+- **выводимое:** `tenure/2`, `entitled/2`, `competent/2`, `ultra_vires/1`,
+  `holds_right/2`, `may_grant/3` и отрицательные выводы по `entitled`, `status`
+  и `competent`.
 
 Это тот фиксированный набор, под который пишется
 [[docs/design/deduction|вычислитель]].
@@ -184,14 +182,14 @@ may_grant(Off, P, S)  :- competent(Off, grant_status), entitled(P, S).
 
 ### Арифметика подтвердилась и обошлась дешевле ожидаемого
 
-`tenure(P, N) :- served(P, From, To), N = To - From` — вычитание, которого в
-чистом Datalog нет. Минимально необходимое расширение: **сравнение и вычитание
-над номерами периодов**, и ничего больше.
+`r_tenure` — арифметика, которой в чистом выводе по правилам нет. Минимально
+необходимое расширение: **сравнение и вычитание над номерами периодов**, и
+ничего больше.
 
 Агрегации удалось избежать: служба хранится интервалом, а не фактом на каждый
 период, поэтому считать нечего. Правило моделирования стоит того, чтобы быть
-записанным явно, — иначе агрегация протащится в вычислитель и утянет второй вид
-стратификации.
+записанным явно, — иначе агрегация протащится в вычислитель и потянет за собой
+собственный порядок вычисления.
 
 ### Вид нормы решает вопрос об основании
 
@@ -207,6 +205,20 @@ may_grant(Off, P, S)  :- competent(Off, grant_status), entitled(P, S).
 Разрешено видом нормы: конститутивная порождает акт, не зависящий от
 сохранности основания; длящаяся пересчитывается непрерывно. Гражданство
 конститутивно, освобождение от повинности длится.
+
+### Цепочка возражений легла на вытеснение буквально
+
+`intentio` → `exceptio` → `replicatio` оказалось не аналогией, а прямым
+описанием отношения вытеснения: каждое следующее правило бьёт предыдущее,
+порядок объявлен заранее. Отдельного механизма для исключений внутри одного
+документа не понадобилось — вопрос снялся вместе с механизмом, который его
+порождал.
+
+Защита приобретённого при этом выражается **defeater**: `A4` ничего не выводит,
+она только не даёт отнять. Отмена защиты есть удаление одного правила, после
+чего `r_strip` перестаёт встречать сопротивление. В варианте с отрицанием то же
+самое требовало отдельного нулевого предиката и перестановки порядка
+вычисления.
 
 ### Период подтверждён как параметр, а не аргумент
 

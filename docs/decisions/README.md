@@ -43,7 +43,7 @@ tags:
 | Решение | Статус | Суть |
 | --- | --- | --- |
 | [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Proposed | Предметная область — пошаговая игра о законотворчестве |
-| [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — правило вывода; вывод трёхзначный, неясность есть исход |
+| [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
 | [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Proposed | Хранятся факты, вычисляются следствия норм |
 | [[docs/decisions/documentation-layers\|documentation-layers]] | Proposed | Документация делится по скорости устаревания |
 | [[docs/decisions/llm-does-not-grant-authority\|llm-does-not-grant-authority]] | Accepted | Модель не создаёт права, нормы и полномочия |
