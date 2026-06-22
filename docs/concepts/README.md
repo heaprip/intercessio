@@ -49,6 +49,7 @@ tags:
 | [[docs/concepts/office\|Должность]] (`Office`) | Замещаемое место, к которому привязана компетенция |
 | [[docs/concepts/competence\|Компетенция]] (`Competence`) | Что должности позволено совершать |
 | [[docs/concepts/succession-method\|Способ замещения]] (`SuccessionMethod`) | Объявленный порядок получения должностью человека |
+| [[docs/concepts/enforcement-capacity\|Способность проверять]] (`EnforcementCapacity`) | Сколько проверок исполнения должность успевает за период |
 | [[docs/concepts/actor\|Actor]] | Тот, кто совершает действие от имени должности |
 | [[docs/concepts/ultra-vires\|Действие вне компетенции]] (`UltraVires`) | Действие, тип которого должности не позволен |
 
@@ -106,6 +107,7 @@ tags:
 | [[docs/concepts/journal\|Журнал]] (`Journal`) | Запись всего произошедшего с провенансом |
 | [[docs/concepts/report\|Отчёт периода]] (`Report`) | Что произошло, что нашёл линтер, кого задело |
 | [[docs/concepts/censor\|Цензор]] (`Censor`) | Аналитика поверх журнала; решать не вправе |
+| [[docs/concepts/codification\|Кодификация]] (`Codification`) | Акт auctor, которым практика становится нормой |
 
 ## Архитектурные
 

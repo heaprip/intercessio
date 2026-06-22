@@ -46,6 +46,8 @@ tags:
 | [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
 | [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Proposed | Хранятся факты, вычисляются следствия норм |
 | [[docs/decisions/duties-have-a-lifecycle\|duties-have-a-lifecycle]] | Proposed | Обязанность имеет носителя, срок, вид и выводимое нарушение |
+| [[docs/decisions/enforcement-is-finite\|enforcement-is-finite]] | Proposed | Полития не всеведуща: презумпция исполнения, проверка — ресурс |
+| [[docs/decisions/practice-becomes-norm-only-by-enactment\|practice-becomes-norm-only-by-enactment]] | Proposed | Практика извлекается как находка; нормой её делает auctor |
 | [[docs/decisions/documentation-layers\|documentation-layers]] | Proposed | Документация делится по скорости устаревания |
 | [[docs/decisions/llm-does-not-grant-authority\|llm-does-not-grant-authority]] | Accepted | Модель не создаёт права, нормы и полномочия |
 | [[docs/decisions/modular-monolith\|modular-monolith]] | Accepted | Один deployable с доменными границами внутри |
@@ -59,11 +61,15 @@ tags:
 
 ## Что здесь требует внимания автора
 
-Четыре решения имеют статус `Proposed` и ждут подтверждения:
+Шесть решений имеют статус `Proposed` и ждут подтверждения:
 
 - `norms-are-inference-rules` — представление нормы и механизм исключения;
 - `rights-are-derived-not-stored` — что хранится, а что вычисляется;
 - `duties-have-a-lifecycle` — обязанность, нарушение и его последствие;
+- `enforcement-is-finite` — презумпция исполнения и конечная способность
+  проверять;
+- `practice-becomes-norm-only-by-enactment` — извлечение практики и
+  кодификация;
 - `documentation-layers` — заменяет
   `project-memory-and-documentation-lifecycle`, но фактически уже применён к
   репозиторию.

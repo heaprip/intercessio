@@ -24,6 +24,8 @@ tags:
 - [[docs/design/turn-and-case|turn-and-case]] — три фазы, переход, путь дела;
 - [[docs/design/actors-and-llm|actors-and-llm]] — роли моделей, изоляция,
   уровни риска, угрозы;
+- [[docs/design/censor|censor]] — аналитический контур и стенд: по каким осям
+  видно, куда ведёт конструкция;
 - [[docs/design/testing|testing]] — уровни проверки, реплей периода, тест
   заменяемости;
 - [[docs/design/casus-citizenship|casus-citizenship]] — разобранный казус, из

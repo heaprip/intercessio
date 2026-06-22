@@ -146,12 +146,12 @@ r_comp  >  r_nocomp
 - **о должностях:** `occupies/4`, `responsibility/2`;
 - **о нормах:** `bundle/2`, `edict/2`, `norm_in_force/1`, `strips_vested/2`,
   `applies_to/2`;
-- **об обязанностях:** `duty/4` — носитель, что, вид, срок; `bears/3` —
-  свидетельство исполнения; `exempt/3`, `about/3`, `resolved/1`;
+- **об обязанностях:** `duty/5` — носитель, адресат, что, вид, срок; `bears/3`
+  — свидетельство исполнения; `exempt/3`, `about/3`, `resolved/1`;
 - **о проступках и заслугах:** `merit/2`, `covers/2`, `revocation/3`;
   `offense/2` **выводится** из вступившего в силу решения, а не вносится;
 - **выводимое:** `tenure/2`, `entitled/2`, `competent/2`, `ultra_vires/1`,
-  `holds_right/2`, `may_grant/3`, `duty/4`, `borne/3`, `violated/3`,
+  `holds_right/2`, `may_grant/3`, `duty/5`, `borne/3`, `violated/3`,
   `offense/2` и отрицательные выводы по `entitled`, `status`, `competent`,
   `duty` и `borne`.
 
