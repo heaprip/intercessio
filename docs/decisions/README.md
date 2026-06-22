@@ -42,7 +42,7 @@ tags:
 
 | Решение | Статус | Суть |
 | --- | --- | --- |
-| [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Proposed | Предметная область — пошаговая игра о законотворчестве |
+| [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Accepted | Предметная область — пошаговая игра о законотворчестве |
 | [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
 | [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Proposed | Хранятся факты, вычисляются следствия норм |
 | [[docs/decisions/documentation-layers\|documentation-layers]] | Proposed | Документация делится по скорости устаревания |
@@ -52,19 +52,19 @@ tags:
 | [[docs/decisions/durable-commit-is-a-semantic-contract\|durable-commit-is-a-semantic-contract]] | Accepted | Durable commit определяется гарантиями, а не механизмом |
 | [[docs/decisions/application-owns-workflow-state\|application-owns-workflow-state]] | Accepted | Каноническое состояние процесса принадлежит Intercessio |
 | [[docs/decisions/proto-first-external-api\|proto-first-external-api]] | Accepted | Proto-first API с REST через gRPC-Gateway |
-| [[docs/decisions/roman-inspired-polity-is-the-domain\|roman-inspired-polity-is-the-domain]] | Accepted | Римско-вдохновлённая полития является предметной областью |
+| [[docs/decisions/roman-inspired-polity-is-the-domain\|roman-inspired-polity-is-the-domain]] | Superseded | Римско-вдохновлённая полития является предметной областью |
 | [[docs/decisions/project-memory-and-documentation-lifecycle\|project-memory-and-documentation-lifecycle]] | Accepted | Разделить оперативную память, документы и историю решений |
 | [[docs/decisions/roman-names-in-presentation-only\|roman-names-in-presentation-only]] | Rejected | Отклонено: римские названия только в presentation layer |
 
 ## Что здесь требует внимания автора
 
-Четыре решения имеют статус `Proposed` и ждут подтверждения. Два из них
-заменяют действующие, поэтому до подтверждения репозиторий находится в
-несогласованном состоянии — оно предпочтительнее, чем присвоенная авторитетность:
+Три решения имеют статус `Proposed` и ждут подтверждения:
 
-- `stepwise-legislative-game` заменяет `roman-inspired-polity-is-the-domain`;
-- `documentation-layers` заменяет
-  `project-memory-and-documentation-lifecycle`.
+- `norms-are-inference-rules` — представление нормы и механизм исключения;
+- `rights-are-derived-not-stored` — что хранится, а что вычисляется;
+- `documentation-layers` — заменяет
+  `project-memory-and-documentation-lifecycle`, но фактически уже применён к
+  репозиторию.
 
 При принятии каждого: поставить `Accepted`, заполнить `Accepted by`, проставить
 заменяемому `Superseded` и строку `Superseded by`, обновить эту таблицу.

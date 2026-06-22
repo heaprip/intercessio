@@ -6,16 +6,14 @@ tags:
 
 # Предметная область — пошаговая игра о законотворчестве
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant (записано со слов автора)  
-Accepted by: —  
+Accepted by: author  
 Зависит от: [[docs/decisions/llm-does-not-grant-authority|llm-does-not-grant-authority]]  
 Заменяет: [[docs/decisions/roman-inspired-polity-is-the-domain|roman-inspired-polity-is-the-domain]]
 
 > Решения, перечисленные ниже, приняты автором в рабочем диалоге; помощник их
-> только зафиксировал. Формальный статус остаётся `Proposed` до подтверждения
-> автором — только он переводит решение в `Accepted` и проставляет заменяемому
-> решению `Superseded`.
+> только зафиксировал.
 
 ## Context
 

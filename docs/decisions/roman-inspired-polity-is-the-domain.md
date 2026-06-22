@@ -6,15 +6,17 @@ tags:
 
 # Сделать римско-вдохновленную политию предметной областью
 
-Status: Accepted  
+Status: Superseded  
 Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
 Accepted by: author  
 Зависит от: —  
-Заменяет: —
+Заменяет: —  
+Superseded by: [[docs/decisions/stepwise-legislative-game|stepwise-legislative-game]]
 
-> Будет заменено решением
-> [[docs/decisions/stepwise-legislative-game|stepwise-legislative-game]], как только
-> автор его примет. До этого формально действует эта рамка.
+> Рамка расширена: предметная область является пошаговой игрой о
+> законотворчестве. Римско-вдохновлённая полития осталась предметной рамкой
+> внутри неё, поэтому большая часть текста ниже верна; заменено решение о том,
+> чем является продукт.
 
 ## Context
 
