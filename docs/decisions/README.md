@@ -48,6 +48,7 @@ tags:
 | [[docs/decisions/duties-have-a-lifecycle\|duties-have-a-lifecycle]] | Accepted | Обязанность имеет носителя, срок, вид и выводимое нарушение |
 | [[docs/decisions/enforcement-is-finite\|enforcement-is-finite]] | Accepted | Полития не всеведуща: презумпция исполнения, проверка — ресурс |
 | [[docs/decisions/practice-becomes-norm-only-by-enactment\|practice-becomes-norm-only-by-enactment]] | Accepted | Практика извлекается как находка; нормой её делает auctor |
+| [[docs/decisions/extension-points-require-a-casus\|extension-points-require-a-casus]] | Proposed | Точка расширения оправдана двумя вариантами из казуса |
 | [[docs/decisions/documentation-layers\|documentation-layers]] | Accepted | Документация делится по скорости устаревания |
 | [[docs/decisions/llm-does-not-grant-authority\|llm-does-not-grant-authority]] | Accepted | Модель не создаёт права, нормы и полномочия |
 | [[docs/decisions/modular-monolith\|modular-monolith]] | Accepted | Один deployable с доменными границами внутри |
@@ -61,10 +62,14 @@ tags:
 
 ## Что здесь требует внимания автора
 
-Непринятых решений нет: всё, что описано в
-[[docs/guide/01-what-it-is|guide]] и [[docs/design/README|design]], имеет
-основанием принятое решение. `template.md` носит статус `Proposed` по
-устройству, а не потому, что чего-то ждёт.
+Одно решение ждёт подтверждения — `extension-points-require-a-casus`. Всё
+остальное, описанное в [[docs/guide/01-what-it-is|guide]] и
+[[docs/design/README|design]], имеет основанием принятое решение.
+`template.md` носит статус `Proposed` по устройству, а не потому, что чего-то
+ждёт.
+
+Четыре решения **отложены и ещё не написаны** — их список в
+[[docs/open-questions|открытых вопросах]].
 
 **Атрибуция.** Часть принятых решений унаследована с пометкой `Deciders:
 author`, но авторство не подтверждено — у них стоит `Proposed by: не

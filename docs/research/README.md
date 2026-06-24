@@ -18,6 +18,8 @@ tags:
 - [[docs/research/roman-procedure-and-offices|roman-procedure-and-offices]] —
   двухфазное рассмотрение, формула, цепочка возражений, срок магистратуры.
   Источники **не проверены**;
+- [[docs/research/roman-private-law-cases|roman-private-law-cases]] — пять
+  казусов частного права: что переносится и где проходит граница;
 - [[docs/research/regime-measurement|regime-measurement]] — чем измеряют
   политические устройства и какие оси из этого берутся;
 - [[docs/research/legalruleml|legalruleml]] — стандарт представления норм:

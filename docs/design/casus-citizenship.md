@@ -86,7 +86,9 @@ r_c3       offense(P, O), merit(P, M), covers(M, O)   ⇒  entitled(P, civis)
 % статус: C1 конститутивна, держится на факте решения, не на основании
 r_status   decision(D, Pt, grant, _, _),
            petition(Pt, P, citizenship, _), in_force(D, _)  ⇒ status(P, civis)
-r_born     born_to(P, Q), status(Q, civis)            ⇒  status(P, civis)
+% наследуемость объявлена у статуса, а не зашита в правило: civis передаётся
+% по рождению, состояние вольноотпущенника — нет
+r_born     born_to(P, Q), status(Q, S), heritable(S)  ⇒  status(P, S)
 r_edict    edict(E, all_free), free(P), in_force(E, _) ⇒ status(P, civis)
 
 % лишение
@@ -144,8 +146,8 @@ r_comp  >  r_nocomp
 - **о фактах:** `established/4` — что, кем, в каком периоде;
 - **о делах:** `petition/4`, `decision/5`, `in_force/2`, `performed/4`;
 - **о должностях:** `occupies/4`, `responsibility/2`;
-- **о нормах:** `bundle/2`, `edict/2`, `norm_in_force/1`, `strips_vested/2`,
-  `applies_to/2`;
+- **о нормах:** `bundle/2`, `duty_bundle/2`, `heritable/1`, `edict/2`,
+  `norm_in_force/1`, `strips_vested/2`, `applies_to/2`;
 - **об обязанностях:** `duty/5` — носитель, адресат, что, вид, срок; `bears/3`
   — свидетельство исполнения; `exempt/3`, `about/3`, `resolved/1`;
 - **о проступках и заслугах:** `merit/2`, `covers/2`, `revocation/3`;
