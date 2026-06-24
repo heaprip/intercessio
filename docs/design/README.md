@@ -28,8 +28,10 @@ tags:
   видно, куда ведёт конструкция;
 - [[docs/design/testing|testing]] — уровни проверки, реплей периода, тест
   заменяемости;
-- [[docs/design/casus-citizenship|casus-citizenship]] — разобранный казус, из
-  которого выведена схема предикатов.
+- [[docs/design/casus-citizenship|casus-citizenship]] — первый разобранный
+  казус: статус, вытеснение, обязанности;
+- [[docs/design/casus-office-eligibility|casus-office-eligibility]] — второй:
+  частичные статусы, несовместимость должностей, обходимое условие допуска.
 
 ## Граф зависимостей
 

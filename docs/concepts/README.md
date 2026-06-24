@@ -48,6 +48,7 @@ tags:
 | [[docs/concepts/institution\|Институт]] (`Institution`) | Орган, состоящий из должностей |
 | [[docs/concepts/office\|Должность]] (`Office`) | Замещаемое место, к которому привязана компетенция |
 | [[docs/concepts/competence\|Компетенция]] (`Competence`) | Что должности позволено совершать |
+| [[docs/concepts/eligibility\|Допуск]] (`Eligibility`) | Может ли человек занять должность; выводится из статуса и цензов |
 | [[docs/concepts/succession-method\|Способ замещения]] (`SuccessionMethod`) | Объявленный порядок получения должностью человека |
 | [[docs/concepts/enforcement-capacity\|Способность проверять]] (`EnforcementCapacity`) | Сколько проверок исполнения должность успевает за период |
 | [[docs/concepts/actor\|Actor]] | Тот, кто совершает действие от имени должности |
