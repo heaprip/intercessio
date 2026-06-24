@@ -12,6 +12,11 @@ product and architecture decisions. Assistants are expected to challenge
 assumptions, distinguish an accepted decision from an idea, and explain
 trade-offs instead of silently turning suggestions into architecture.
 
+**The author writes the code.** The assistant prepares design, specifications
+and documentation, and does not add Go files unless asked for a specific piece.
+A specification is finished when the author can implement from it without asking
+what was meant.
+
 An assistant is never the author of a project decision. Unless the author gives
 an explicit instruction for a specific piece of work, assistants draft only
 inside `docs/proposals/`, and every draft carries `Статус: НЕ ПРИНЯТО` in its

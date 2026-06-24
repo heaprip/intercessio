@@ -15,6 +15,8 @@ tags:
 
 - [[docs/design/milestones|milestones]] — порядок сборки: что добавляет каждая
   веха, что демонстрирует и какой у неё гейт;
+- [[docs/design/scenario|scenario]] — данные мира и загрузчик с проверками:
+  компонент, с которого начинается код;
 - [[docs/design/deduction|deduction]] — вычислитель: сила правил, вытеснение,
   безопасность, оценка, трасса;
 - [[docs/design/entitlement|entitlement]] — единственный ответчик и
