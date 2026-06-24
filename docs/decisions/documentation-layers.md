@@ -6,9 +6,9 @@ tags:
 
 # Документация делится по скорости устаревания
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant  
-Accepted by: —  
+Accepted by: author  
 Зависит от: —  
 Заменяет: [[docs/decisions/project-memory-and-documentation-lifecycle|project-memory-and-documentation-lifecycle]]
 

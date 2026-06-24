@@ -43,12 +43,12 @@ tags:
 | Решение | Статус | Суть |
 | --- | --- | --- |
 | [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Accepted | Предметная область — пошаговая игра о законотворчестве |
-| [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Proposed | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
-| [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Proposed | Хранятся факты, вычисляются следствия норм |
-| [[docs/decisions/duties-have-a-lifecycle\|duties-have-a-lifecycle]] | Proposed | Обязанность имеет носителя, срок, вид и выводимое нарушение |
-| [[docs/decisions/enforcement-is-finite\|enforcement-is-finite]] | Proposed | Полития не всеведуща: презумпция исполнения, проверка — ресурс |
-| [[docs/decisions/practice-becomes-norm-only-by-enactment\|practice-becomes-norm-only-by-enactment]] | Proposed | Практика извлекается как находка; нормой её делает auctor |
-| [[docs/decisions/documentation-layers\|documentation-layers]] | Proposed | Документация делится по скорости устаревания |
+| [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Accepted | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
+| [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Accepted | Хранятся факты, вычисляются следствия норм |
+| [[docs/decisions/duties-have-a-lifecycle\|duties-have-a-lifecycle]] | Accepted | Обязанность имеет носителя, срок, вид и выводимое нарушение |
+| [[docs/decisions/enforcement-is-finite\|enforcement-is-finite]] | Accepted | Полития не всеведуща: презумпция исполнения, проверка — ресурс |
+| [[docs/decisions/practice-becomes-norm-only-by-enactment\|practice-becomes-norm-only-by-enactment]] | Accepted | Практика извлекается как находка; нормой её делает auctor |
+| [[docs/decisions/documentation-layers\|documentation-layers]] | Accepted | Документация делится по скорости устаревания |
 | [[docs/decisions/llm-does-not-grant-authority\|llm-does-not-grant-authority]] | Accepted | Модель не создаёт права, нормы и полномочия |
 | [[docs/decisions/modular-monolith\|modular-monolith]] | Accepted | Один deployable с доменными границами внутри |
 | [[docs/decisions/domain-events-are-transport-agnostic\|domain-events-are-transport-agnostic]] | Accepted | Доменное событие не зависит от транспорта |
@@ -56,26 +56,15 @@ tags:
 | [[docs/decisions/application-owns-workflow-state\|application-owns-workflow-state]] | Accepted | Каноническое состояние процесса принадлежит Intercessio |
 | [[docs/decisions/proto-first-external-api\|proto-first-external-api]] | Accepted | Proto-first API с REST через gRPC-Gateway |
 | [[docs/decisions/roman-inspired-polity-is-the-domain\|roman-inspired-polity-is-the-domain]] | Superseded | Римско-вдохновлённая полития является предметной областью |
-| [[docs/decisions/project-memory-and-documentation-lifecycle\|project-memory-and-documentation-lifecycle]] | Accepted | Разделить оперативную память, документы и историю решений |
+| [[docs/decisions/project-memory-and-documentation-lifecycle\|project-memory-and-documentation-lifecycle]] | Superseded | Разделить оперативную память, документы и историю решений |
 | [[docs/decisions/roman-names-in-presentation-only\|roman-names-in-presentation-only]] | Rejected | Отклонено: римские названия только в presentation layer |
 
 ## Что здесь требует внимания автора
 
-Шесть решений имеют статус `Proposed` и ждут подтверждения:
-
-- `norms-are-inference-rules` — представление нормы и механизм исключения;
-- `rights-are-derived-not-stored` — что хранится, а что вычисляется;
-- `duties-have-a-lifecycle` — обязанность, нарушение и его последствие;
-- `enforcement-is-finite` — презумпция исполнения и конечная способность
-  проверять;
-- `practice-becomes-norm-only-by-enactment` — извлечение практики и
-  кодификация;
-- `documentation-layers` — заменяет
-  `project-memory-and-documentation-lifecycle`, но фактически уже применён к
-  репозиторию.
-
-При принятии каждого: поставить `Accepted`, заполнить `Accepted by`, проставить
-заменяемому `Superseded` и строку `Superseded by`, обновить эту таблицу.
+Непринятых решений нет: всё, что описано в
+[[docs/guide/01-what-it-is|guide]] и [[docs/design/README|design]], имеет
+основанием принятое решение. `template.md` носит статус `Proposed` по
+устройству, а не потому, что чего-то ждёт.
 
 **Атрибуция.** Часть принятых решений унаследована с пометкой `Deciders:
 author`, но авторство не подтверждено — у них стоит `Proposed by: не

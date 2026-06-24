@@ -6,9 +6,9 @@ tags:
 
 # Условие нормы представляется опровержимыми правилами
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant (записано со слов автора)  
-Accepted by: —  
+Accepted by: author  
 Зависит от: [[docs/decisions/stepwise-legislative-game|stepwise-legislative-game]]  
 Заменяет: —
 

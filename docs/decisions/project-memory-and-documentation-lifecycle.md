@@ -6,15 +6,16 @@ tags:
 
 # Разделить проектную память и проверять документацию как код
 
-Status: Accepted  
+Status: Superseded  
 Proposed by: не подтверждено — см. [[docs/open-questions|открытые вопросы]]  
 Accepted by: author  
 Зависит от: —  
-Заменяет: —
+Заменяет: —  
+Superseded by: [[docs/decisions/documentation-layers|documentation-layers]]
 
-> Будет заменено решением
-> [[docs/decisions/documentation-layers|documentation-layers]], как только автор
-> его примет. Каталог `.agents/` уже упразднён этой пересборкой.
+> Разделение памяти, документов и истории решений сохранилось; заменён критерий
+> деления — теперь по скорости устаревания, а не по теме. Каталог `.agents/`
+> упразднён.
 
 ## Context
 

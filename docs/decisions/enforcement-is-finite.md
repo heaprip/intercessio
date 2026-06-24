@@ -6,9 +6,9 @@ tags:
 
 # Полития не всеведуща: способность проверять конечна
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant  
-Accepted by: —  
+Accepted by: author  
 Зависит от: [[docs/decisions/duties-have-a-lifecycle|duties-have-a-lifecycle]]  
 Заменяет: —
 

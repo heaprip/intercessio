@@ -6,9 +6,9 @@ tags:
 
 # Обязанность является объектом с жизненным циклом
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant (записано со слов автора)  
-Accepted by: —  
+Accepted by: author  
 Зависит от: [[docs/decisions/norms-are-inference-rules|norms-are-inference-rules]]  
 Заменяет: —
 

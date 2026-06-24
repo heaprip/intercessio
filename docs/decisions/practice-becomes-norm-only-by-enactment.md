@@ -6,9 +6,9 @@ tags:
 
 # Практика становится нормой только актом auctor
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant  
-Accepted by: —  
+Accepted by: author  
 Зависит от: [[docs/decisions/llm-does-not-grant-authority|llm-does-not-grant-authority]]  
 Заменяет: —
 
