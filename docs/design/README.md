@@ -28,10 +28,19 @@ tags:
   видно, куда ведёт конструкция;
 - [[docs/design/testing|testing]] — уровни проверки, реплей периода, тест
   заменяемости;
-- [[docs/design/casus-citizenship|casus-citizenship]] — первый разобранный
-  казус: статус, вытеснение, обязанности;
-- [[docs/design/casus-office-eligibility|casus-office-eligibility]] — второй:
-  частичные статусы, несовместимость должностей, обходимое условие допуска.
+Разобранные казусы, по порядку — каждый берётся ради того, чего не показали
+предыдущие:
+
+1. [[docs/design/casus-citizenship|casus-citizenship]] — статус, вытеснение,
+   обязанность и её нарушение;
+2. [[docs/design/casus-office-eligibility|casus-office-eligibility]] — частичные
+   статусы, несовместимость должностей, обходимое условие допуска;
+3. [[docs/design/casus-censorial-note|casus-censorial-note]] — приостановка
+   отдельного права, акт помимо дела, коллегиальность как противовес;
+4. [[docs/design/casus-colleagues|casus-colleagues]] — intercessio между
+   равными, симметричный тупик, утрата должности посреди срока;
+5. [[docs/design/casus-decemvirate|casus-decemvirate]] — орган без противовеса и
+   терминальное состояние.
 
 ## Граф зависимостей
 
