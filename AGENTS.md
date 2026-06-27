@@ -41,7 +41,8 @@ Documents are split by **what makes them wrong**, not by topic. See
 | Implementation | `docs/impl/` | the stack changes — disposable |
 | Sources | `docs/research/` | verification happens |
 
-Two invariants, both enforced by `scripts/check-docs.sh`:
+Two invariants. The second is enforced by `scripts/check-docs.sh`; the first is
+not machine-checkable and rests on discipline:
 
 1. a `guide/` chapter is understandable without following any link;
 2. `guide/` never links into `impl/`.

@@ -58,4 +58,6 @@ capabilities.
 ## Links
 
 - Направление, выбранное взамен:
-  [[docs/decisions/roman-inspired-polity-is-the-domain|roman-inspired-polity-is-the-domain]]
+  [[docs/decisions/roman-inspired-polity-is-the-domain|roman-inspired-polity-is-the-domain]],
+  само с тех пор заменённое
+  [[docs/decisions/stepwise-legislative-game|stepwise-legislative-game]]
