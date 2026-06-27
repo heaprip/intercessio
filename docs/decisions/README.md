@@ -44,6 +44,7 @@ tags:
 | --- | --- | --- |
 | [[docs/decisions/stepwise-legislative-game\|stepwise-legislative-game]] | Accepted | Предметная область — пошаговая игра о законотворчестве |
 | [[docs/decisions/norms-are-inference-rules\|norms-are-inference-rules]] | Accepted | Условие нормы — опровержимое правило; исключение вытесняет, а не отрицает |
+| [[docs/decisions/document-hierarchy-fills-the-defeat-relation\|document-hierarchy-fills-the-defeat-relation]] | Proposed | Иерархия документов — источник вытеснения; объявленная пара сильнее |
 | [[docs/decisions/rights-are-derived-not-stored\|rights-are-derived-not-stored]] | Accepted | Хранятся факты, вычисляются следствия норм |
 | [[docs/decisions/duties-have-a-lifecycle\|duties-have-a-lifecycle]] | Accepted | Обязанность имеет носителя, срок, вид и выводимое нарушение |
 | [[docs/decisions/enforcement-is-finite\|enforcement-is-finite]] | Accepted | Полития не всеведуща: презумпция исполнения, проверка — ресурс |
@@ -55,7 +56,7 @@ tags:
 | [[docs/decisions/domain-events-are-transport-agnostic\|domain-events-are-transport-agnostic]] | Accepted | Доменное событие не зависит от транспорта |
 | [[docs/decisions/durable-commit-is-a-semantic-contract\|durable-commit-is-a-semantic-contract]] | Accepted | Durable commit определяется гарантиями, а не механизмом |
 | [[docs/decisions/application-owns-workflow-state\|application-owns-workflow-state]] | Accepted | Каноническое состояние процесса принадлежит Intercessio |
-| [[docs/decisions/proto-first-external-api\|proto-first-external-api]] | Accepted | Proto-first API с REST через gRPC-Gateway |
+| [[docs/decisions/proto-first-external-api\|proto-first-external-api]] | Deprecated | Proto-first API с REST через gRPC-Gateway; выбор делается заново на M7 |
 | [[docs/decisions/roman-inspired-polity-is-the-domain\|roman-inspired-polity-is-the-domain]] | Superseded | Римско-вдохновлённая полития является предметной областью |
 | [[docs/decisions/project-memory-and-documentation-lifecycle\|project-memory-and-documentation-lifecycle]] | Superseded | Разделить оперативную память, документы и историю решений |
 | [[docs/decisions/roman-names-in-presentation-only\|roman-names-in-presentation-only]] | Rejected | Отклонено: римские названия только в presentation layer |
@@ -84,11 +85,15 @@ tags:
 | «Вне корпуса не происходит ничего» | игра лишается сюжета о смерти конструкции | там же |
 | «Победитель переписывает корпус» | реалистичнее всего и дороже всего | там же |
 | Вещное и обязательственное право | граница проходит по статусу: вещи и сделки — не наше | [[docs/research/roman-private-law-cases\|roman-private-law-cases]] |
+| Механизм специальности нормы | был бы третьим генератором пар вытеснения — «частное бьёт общее»; при надобности отдельное решение | [[docs/decisions/document-hierarchy-fills-the-defeat-relation\|document-hierarchy-fills-the-defeat-relation]] |
 | Номера как идентификаторы решений и понятий | у одного автора и неизменяемых решений не дают ни защиты от коллизий, ни устойчивости идентичности, а в тексте ссылки читаются хуже слага | [[docs/decisions/documentation-layers\|documentation-layers]] |
 
 ## Что здесь требует внимания автора
 
-Одно решение ждёт подтверждения — `extension-points-require-a-casus`. Всё
+Два решения ждут подтверждения — `extension-points-require-a-casus` и
+`document-hierarchy-fills-the-defeat-relation`. Второе снимает расхождение между
+двумя принятыми: до его принятия абзац о приоритете норм в рамке несёт пометку
+об уточнении, но формально не заменён. Всё
 остальное, описанное в [[docs/guide/01-what-it-is|guide]] и
 [[docs/design/README|design]], имеет основанием принятое решение.
 `template.md` носит статус `Proposed` по устройству, а не потому, что чего-то
