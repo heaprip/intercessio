@@ -61,7 +61,7 @@ in_force(d1, 32).
 ```
 
 `open` — незакрытый интервал: конец подставляется текущим периодом при чтении
-среза, см. [[docs/design/corpus-and-facts|corpus-and-facts]]. Переписывать факт
+среза, см. [[docs/design/components/facts|facts]]. Переписывать факт
 каждый период нельзя, факты неизменны.
 
 ## Правила вывода
@@ -138,7 +138,7 @@ r_comp  >  r_nocomp
 
 Незаполненная пара — не ошибка. Если два правила выводят противоположное и
 порядок между ними не объявлен, не выводится ничего: дело получает исход
-[[docs/concepts/non-liquet|non liquet]].
+[[docs/concepts/derivation#Non liquet|non liquet]].
 
 ## Схема предикатов
 
@@ -158,7 +158,7 @@ r_comp  >  r_nocomp
   `duty` и `borne`.
 
 Это тот фиксированный набор, под который пишется
-[[docs/design/deduction|вычислитель]].
+[[docs/design/components/deduction|вычислитель]].
 
 ## Сценарий
 
