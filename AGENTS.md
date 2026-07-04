@@ -17,15 +17,20 @@ and documentation, and does not add Go files unless asked for a specific piece.
 A specification is finished when the author can implement from it without asking
 what was meant.
 
-An assistant is never the author of a project decision. Unless the author gives
-an explicit instruction for a specific piece of work, assistants draft only
-inside `docs/proposals/`, and every draft carries `Статус: НЕ ПРИНЯТО` in its
-header. Moving material into the other directories, and setting any decision to
-`Accepted`, is done by the author alone. In a decision record, `Proposed by`
-names whoever drafted it; `Accepted by` is filled in by the author only, and an
-assistant must leave it empty. A generated document that claims the author's
-decision is a defect, not a shortcut — it makes later sessions build on
-authority that was never granted.
+An assistant is never the author of a project decision. Without an explicit
+instruction from the author, assistants draft only inside `docs/proposals/`,
+and every draft carries `Статус: НЕ ПРИНЯТО` in its header. An explicit
+instruction for a specific piece of work allows writing into any directory that
+work covers — `docs/decisions/`, `docs/guide/`, `docs/design/` included; a
+decision record written that way still starts as `Status: Proposed`.
+
+`Accepted` is the author's act. The author either sets it, or explicitly tells
+the assistant to set it on named decisions; in the second case `Accepted by`
+reads `author (проставлено помощником по прямому указанию автора)`. In every
+other case the assistant leaves `Accepted by` empty. `Proposed by` names
+whoever drafted the record. A generated document that claims the author's
+decision without such an instruction is a defect, not a shortcut — it makes
+later sessions build on authority that was never granted.
 
 ## Documentation Layers
 
@@ -47,15 +52,18 @@ not machine-checkable and rests on discipline:
 1. a `guide/` chapter is understandable without following any link;
 2. `guide/` never links into `impl/`.
 
-Identifiers are **file-name slugs**, not numbers. Links are wikilinks of the
-form `[[docs/concepts/period|период]]`, pathed from the vault root because
-`README` is not unique. Numbers survive only as `guide/` chapter ordering.
+Identifiers are **file-name slugs**, not numbers. Concepts are the exception:
+they are grouped into one document per area, and a term is addressed by its
+heading. Links are wikilinks of the form `[[docs/concepts/game#Период|период]]`,
+pathed from the vault root because `README` is not unique. Numbers survive only
+where order is the meaning: `guide/` chapter ordering and risk levels.
 Documents carry no dates: Git holds chronology, and decision order is expressed
 by `Зависит от` and `Заменяет`.
 
 ## Before a Material Change
 
-Read, in this order:
+To understand the project, read the `guide/` chapters in order. Before changing
+anything — documents included — also read, in this order:
 
 1. [[docs/guide/06-where-we-are|guide/06-where-we-are.md]] — active focus;
 2. [[docs/guide/01-what-it-is|guide/01]] and the chapters relevant to the change;

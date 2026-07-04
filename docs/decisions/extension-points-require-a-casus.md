@@ -6,9 +6,9 @@ tags:
 
 # Точка расширения оправдана двумя увиденными вариантами
 
-Status: Proposed  
+Status: Accepted  
 Proposed by: assistant  
-Accepted by: —  
+Accepted by: author (проставлено помощником по прямому указанию автора)  
 Зависит от: —  
 Заменяет: —
 
