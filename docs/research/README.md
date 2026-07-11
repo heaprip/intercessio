@@ -22,6 +22,9 @@ tags:
   казусов частного права: что переносится и где проходит граница;
 - [[docs/research/regime-measurement|regime-measurement]] — чем измеряют
   политические устройства и какие оси из этого берутся;
+- [[docs/research/player-feedback-in-games|player-feedback-in-games]] — как
+  системные игры сообщают игроку о последствиях: шкалы, граф причин, события,
+  отложенный счёт; варианты ориентира без балла;
 - [[docs/research/legalruleml|legalruleml]] — стандарт представления норм:
   вытеснение, сила правила, временные измерения; что берём и чего не берём;
 - [[docs/research/architecture-and-tooling-sources|architecture-and-tooling-sources]]
