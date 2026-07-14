@@ -140,3 +140,17 @@ tags:
 - Какие события вообще нужны первому пресету; колода минимальна, пока сюжетных
   дел нет.
 - Входит ли в файл партии журнал ради обмена без повтора.
+
+## Источники
+
+По поисковой выдаче, первичный текст не читался:
+
+- Michael Booth, «The AI Systems of Left 4 Dead», GDC 2009 —
+  [PDF](https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf):
+  состояния директора — нарастание, удержание пика, спад, передышка;
+- RimWorld, рассказчики —
+  [RimWorld Wiki](https://rimworldwiki.com/wiki/AI_Storytellers): три профиля
+  темпа событий.
+
+Мейер, Джонсон и Сильвестр проверены ранее, см.
+[[docs/research/player-feedback-in-games|исследование обратной связи]].
