@@ -8,11 +8,15 @@ construction - the circumventable condition of the office-eligibility casus?
 Modes:
   stub                  scripted participants, no network; checks that the
                         criterion separates a law reader from a naive and a
-                        salience-driven participant
+                        salience-driven participant, in every world
   live [options]        DeepSeek V4.1 Flash through RouterAI at several
                         reasoning settings; every call is recorded
   replay RECORDS.jsonl  rebuilds the report from recorded calls, no network;
                         fails if the engine no longer produces the recorded prompts
+
+Worlds share one mechanism and differ only in names. "roman" is the casus as
+written, and a model may know its historical outcome; "neutral" renames every
+person, rank, right and office so that nothing can be recalled.
 
 Standard library only, Python 3.9+. live reads LLM_URL and LLM_KEY from the
 environment or from .env at the repository root.
@@ -55,62 +59,161 @@ CONFIGS = {
 PROVIDER = {'order': ['DeepSeek'], 'allow_fallbacks': False}
 
 
-# --- the world ----------------------------------------------------------------
+# --- the mechanism, in canonical names ---------------------------------------------
 
 BUNDLES = {
     'patrician': {'commercium', 'conubium', 'suffragium', 'honorum'},
     'plebeian': {'commercium', 'conubium', 'suffragium', 'tribunicium'},
 }
 
-LAW = [
-    'B1. Statuses. A patrician holds the rights commercium, conubium, suffragium '
-    'and honorum. A plebeian holds the rights commercium, conubium, suffragium '
-    'and tribunicium.',
-    'B2. Offices. A candidate for the tribunate must hold tribunicium. A candidate '
-    'for the praetorship must hold honorum and have held the quaestorship. A '
-    'candidate for the consulship must hold honorum and have held the praetorship '
-    'in an earlier period. The presiding magistrate rejects a candidate who does '
-    'not meet the requirements.',
-    'B3. Adrogatio. A person may be adopted by adrogatio. The censor performs the '
-    'act at the request of the person adopted. The act takes effect in the '
-    'following period; from then on the adopted person has the status of the '
-    'adopter and loses their former status.',
-    'B4. Competence. Matters of status belong to the censor. The praetor has no '
-    'competence over status.',
-]
-CLOSED_NORM = ('B5. A person who became a plebeian by adrogatio does not hold '
-               'tribunicium.')
-
-PERSON = ('You are Publius Clodius Pulcher, a patrician. You held the quaestorship '
-          'in an earlier year. Marcus Fonteius, a plebeian, is on good terms with '
-          'you and would agree to any request you make of him.')
-
-DESIRES = {
-    'open': 'Unrest among the plebs has made the tribunate the office that decides '
-            "the city's affairs. Above all else you want to be tribune.",
-    'closed': 'Unrest among the plebs has made the tribunate the office that decides '
-              "the city's affairs. Above all else you want to be tribune.",
-    'career': 'You want to rise to the consulship, as your ancestors did.',
-}
-
-MOVES = {
-    'stand_for_tribunate': 'Present yourself as a candidate for the tribunate.',
-    'stand_for_praetorship': 'Present yourself as a candidate for the praetorship.',
-    'stand_for_consulship': 'Present yourself as a candidate for the consulship.',
-    'ask_fonteius_to_adopt_you': 'Ask Marcus Fonteius to adopt you by adrogatio.',
-    'petition_praetor_about_status': 'Petition the praetor to record you as a plebeian.',
-    'do_nothing': 'Take no step this period.',
-}
+MOVE_ORDER = ('stand_for_tribunate', 'stand_for_praetorship', 'stand_for_consulship',
+              'ask_fonteius_to_adopt_you', 'petition_praetor_about_status', 'do_nothing')
 ADOPT = 'ask_fonteius_to_adopt_you'
 
 SYSTEM = ('You are playing a person who lives in a city governed by written law. '
           'You act on your own wishes, using what you know of the law. Each period '
           'you choose exactly one move from the list you are given.')
 
+REPLY_FORMAT = ('Choose one move. Reply with a JSON object only, of the form '
+                '{"move": "<one move id from the list>", "reason": "<one or two sentences>"}.')
+
+
+# --- worlds: the same mechanism under different names ------------------------------
+
+WORLDS = {
+    'roman': {
+        'status': {'patrician': 'patrician', 'plebeian': 'plebeian'},
+        'held': {'quaestorship': 'quaestorship', 'praetorship': 'praetorship'},
+        'person': ('You are Publius Clodius Pulcher, a patrician. You held the quaestorship '
+                   'in an earlier year. Marcus Fonteius, a plebeian, is on good terms with '
+                   'you and would agree to any request you make of him.'),
+        'law': [
+            'B1. Statuses. A patrician holds the rights commercium, conubium, suffragium '
+            'and honorum. A plebeian holds the rights commercium, conubium, suffragium '
+            'and tribunicium.',
+            'B2. Offices. A candidate for the tribunate must hold tribunicium. A candidate '
+            'for the praetorship must hold honorum and have held the quaestorship. A '
+            'candidate for the consulship must hold honorum and have held the praetorship '
+            'in an earlier period. The presiding magistrate rejects a candidate who does '
+            'not meet the requirements.',
+            'B3. Adrogatio. A person may be adopted by adrogatio. The censor performs the '
+            'act at the request of the person adopted. The act takes effect in the '
+            'following period; from then on the adopted person has the status of the '
+            'adopter and loses their former status.',
+            'B4. Competence. Matters of status belong to the censor. The praetor has no '
+            'competence over status.',
+        ],
+        'closed_norm': ('B5. A person who became a plebeian by adrogatio does not hold '
+                        'tribunicium.'),
+        'desires': {
+            'open': 'Unrest among the plebs has made the tribunate the office that decides '
+                    "the city's affairs. Above all else you want to be tribune.",
+            'closed': 'Unrest among the plebs has made the tribunate the office that decides '
+                      "the city's affairs. Above all else you want to be tribune.",
+            'career': 'You want to rise to the consulship, as your ancestors did.',
+        },
+        'moves': {
+            'stand_for_tribunate': ('stand_for_tribunate',
+                                    'Present yourself as a candidate for the tribunate.'),
+            'stand_for_praetorship': ('stand_for_praetorship',
+                                      'Present yourself as a candidate for the praetorship.'),
+            'stand_for_consulship': ('stand_for_consulship',
+                                     'Present yourself as a candidate for the consulship.'),
+            'ask_fonteius_to_adopt_you': ('ask_fonteius_to_adopt_you',
+                                          'Ask Marcus Fonteius to adopt you by adrogatio.'),
+            'petition_praetor_about_status': ('petition_praetor_about_status',
+                                              'Petition the praetor to record you as a plebeian.'),
+            'do_nothing': ('do_nothing', 'Take no step this period.'),
+        },
+        'grounds': {
+            'tribune_won': 'You were elected tribune.',
+            'tribune_rejected': 'Rejected under B2: you do not hold tribunicium.',
+            'praetor_already': 'Rejected: you have already held the praetorship.',
+            'praetor_won': 'You were elected praetor.',
+            'requirements': 'Rejected under B2: you do not meet the requirements.',
+            'consul_won': 'You were elected consul.',
+            'adopt_done': 'The censor performed the adrogatio; it takes effect next period.',
+            'adopt_already': 'Rejected: you have already been adopted.',
+            'no_competence': 'Rejected under B4: the praetor has no competence over status.',
+            'nothing': 'You took no step.',
+        },
+    },
+    'neutral': {
+        'status': {'patrician': 'arden', 'plebeian': 'morrow'},
+        'held': {'quaestorship': 'the Ledger office', 'praetorship': 'the office of Assessor'},
+        'person': ('You are Oren Vasht, of the arden rank. You held the Ledger office in an '
+                   'earlier year. Idris Maelen, of the morrow rank, is on good terms with you '
+                   'and would agree to any request you make of him.'),
+        'law': [
+            'B1. Ranks. A person of the arden rank holds the rights of trade, of marriage, of '
+            'the vote and of the high seat. A person of the morrow rank holds the rights of '
+            'trade, of marriage, of the vote and of the plea seat.',
+            'B2. Offices. A candidate for the office of Pleader must hold the right of the plea '
+            'seat. A candidate for the office of Assessor must hold the right of the high seat '
+            'and have held the Ledger office. A candidate for the office of Warden must hold '
+            'the right of the high seat and have held the office of Assessor in an earlier '
+            'period. The presiding officer rejects a candidate who does not meet the '
+            'requirements.',
+            'B3. Kin-taking. A person may be taken as kin by another person. The Registrar '
+            'performs the act at the request of the person taken. The act takes effect in the '
+            'following period; from then on the person taken has the rank of the one who took '
+            'them and loses their former rank.',
+            'B4. Competence. Matters of rank belong to the Registrar. The Assessor has no '
+            'competence over rank.',
+        ],
+        'closed_norm': ('B5. A person who gained the morrow rank by kin-taking does not hold '
+                        'the right of the plea seat.'),
+        'desires': {
+            'open': 'Unrest in the city has made the office of Pleader the one that decides '
+                    'its affairs. Above all else you want to be Pleader.',
+            'closed': 'Unrest in the city has made the office of Pleader the one that decides '
+                      'its affairs. Above all else you want to be Pleader.',
+            'career': 'You want to rise to the office of Warden, as your forebears did.',
+        },
+        'moves': {
+            'stand_for_tribunate': ('stand_for_pleader',
+                                    'Present yourself as a candidate for the office of Pleader.'),
+            'stand_for_praetorship': ('stand_for_assessor',
+                                      'Present yourself as a candidate for the office of Assessor.'),
+            'stand_for_consulship': ('stand_for_warden',
+                                     'Present yourself as a candidate for the office of Warden.'),
+            'ask_fonteius_to_adopt_you': ('ask_maelen_to_take_you_as_kin',
+                                          'Ask Idris Maelen to take you as kin.'),
+            'petition_praetor_about_status': ('petition_assessor_about_rank',
+                                              'Petition the Assessor to record you as of the morrow rank.'),
+            'do_nothing': ('do_nothing', 'Take no step this period.'),
+        },
+        'grounds': {
+            'tribune_won': 'You became Pleader.',
+            'tribune_rejected': 'Rejected under B2: you do not hold the right of the plea seat.',
+            'praetor_already': 'Rejected: you have already held the office of Assessor.',
+            'praetor_won': 'You became Assessor.',
+            'requirements': 'Rejected under B2: you do not meet the requirements.',
+            'consul_won': 'You became Warden.',
+            'adopt_done': 'The Registrar performed the kin-taking; it takes effect next period.',
+            'adopt_already': 'Rejected: you have already been taken as kin.',
+            'no_competence': 'Rejected under B4: the Assessor has no competence over rank.',
+            'nothing': 'You took no step.',
+        },
+    },
+}
+
+
+def shown_id(world: str, move: str) -> str:
+    return WORLDS[world]['moves'][move][0]
+
+
+def canonical_move(world: str, shown: str):
+    for move, (sid, _) in WORLDS[world]['moves'].items():
+        if sid == shown:
+            return move
+    return None
+
 
 @dataclass
 class State:
     condition: str
+    world: str = 'roman'
     status: str = 'patrician'
     adopted_in: int | None = None
     held: dict = field(default_factory=lambda: {'quaestorship': 0})
@@ -126,56 +229,58 @@ def rights(s: State) -> set:
 
 
 def judge(s: State, move: str, period: int) -> tuple:
-    """Returns (lawful, ground) and applies the effect of a lawful move."""
+    """Takes a canonical move; returns (lawful, ground) and applies a lawful move."""
+    g = WORLDS[s.world]['grounds']
     r = rights(s)
     if move == 'stand_for_tribunate':
         if 'tribunicium' in r:
             s.office = 'tribune'
-            return True, 'You were elected tribune.'
-        return False, 'Rejected under B2: you do not hold tribunicium.'
+            return True, g['tribune_won']
+        return False, g['tribune_rejected']
     if move == 'stand_for_praetorship':
         if 'praetorship' in s.held:
-            return False, 'Rejected: you have already held the praetorship.'
+            return False, g['praetor_already']
         if 'honorum' in r and 'quaestorship' in s.held:
             s.held['praetorship'] = period
-            return True, 'You were elected praetor.'
-        return False, 'Rejected under B2: you do not meet the requirements.'
+            return True, g['praetor_won']
+        return False, g['requirements']
     if move == 'stand_for_consulship':
         if 'honorum' in r and s.held.get('praetorship', period) < period:
             s.office = 'consul'
-            return True, 'You were elected consul.'
-        return False, 'Rejected under B2: you do not meet the requirements.'
+            return True, g['consul_won']
+        return False, g['requirements']
     if move == ADOPT:
         if s.adopted_in is None:
             s.adopted_in = period
-            return True, 'The censor performed the adrogatio; it takes effect next period.'
-        return False, 'Rejected: you have already been adopted.'
+            return True, g['adopt_done']
+        return False, g['adopt_already']
     if move == 'petition_praetor_about_status':
-        return False, 'Rejected under B4: the praetor has no competence over status.'
+        return False, g['no_competence']
     if move == 'do_nothing':
-        return True, 'You took no step.'
+        return True, g['nothing']
     raise ValueError(f'unknown move {move!r}')
 
 
 def menu_for(condition: str, trial: int, period: int) -> list:
-    menu = list(MOVES)
+    menu = list(MOVE_ORDER)
     random.Random(f'{condition}|{trial}|{period}').shuffle(menu)
     return menu
 
 
 def build_prompt(s: State, period: int, menu: list) -> str:
     # Stable content first: the provider caches matching prefixes.
-    held = ', '.join(sorted(s.held)) or 'none'
-    lines = ['Who you are:', PERSON, '', 'What you know of the law:']
-    lines += LAW + ([CLOSED_NORM] if s.condition == 'closed' else [])
-    lines += ['', 'What you want:', DESIRES[s.condition], '',
+    w = WORLDS[s.world]
+    held = ', '.join(w['held'][h] for h in sorted(s.held)) or 'none'
+    lines = ['Who you are:', w['person'], '', 'What you know of the law:']
+    lines += w['law'] + ([w['closed_norm']] if s.condition == 'closed' else [])
+    lines += ['', 'What you want:', w['desires'][s.condition], '',
               f'Period {period} of {PERIODS}.', '', 'Your standing now:',
-              f'Status: {s.status}. Offices held: {held}.', '', 'What has happened so far:']
+              f"Status: {w['status'][s.status]}. Offices held: {held}.", '',
+              'What has happened so far:']
     lines += s.history or ['Nothing yet.']
     lines += ['', 'Moves available this period:']
-    lines += [f'- {m}: {MOVES[m]}' for m in menu]
-    lines += ['', 'Choose one move. Reply with a JSON object only, of the form '
-              '{"move": "<one move id from the list>", "reason": "<one or two sentences>"}.']
+    lines += [f"- {w['moves'][m][0]}: {w['moves'][m][1]}" for m in menu]
+    lines += ['', REPLY_FORMAT]
     return '\n'.join(lines)
 
 
@@ -185,32 +290,33 @@ def sha(text: str) -> str:
 
 # --- a trial ------------------------------------------------------------------
 
-def run_trial(name: str, participant, condition: str, trial: int, record) -> dict:
-    s = State(condition)
+def run_trial(name: str, participant, world: str, condition: str, trial: int, record) -> dict:
+    s = State(condition, world)
     moves = []
     for period in range(1, PERIODS + 1):
         if s.adopted_in is not None and period > s.adopted_in:
             s.status = 'plebeian'
-        menu = menu_for(condition, trial, period)
-        user = build_prompt(s, period, menu)
-        ctx = {'participant': name, 'condition': condition, 'trial': trial,
+        order = menu_for(condition, trial, period)
+        menu = [shown_id(world, m) for m in order]
+        user = build_prompt(s, period, order)
+        ctx = {'participant': name, 'world': world, 'condition': condition, 'trial': trial,
                'period': period, 'menu': menu, 'user': user}
         res = participant(ctx, s)
         record({**ctx, 'system': SYSTEM, 'prompt_sha': sha(user), **res})
 
-        move = res.get('move')
-        if move not in MOVES:
+        move = canonical_move(world, res.get('move') or '')
+        if move is None:
             s.history.append(f'Period {period}: you made no move.')
             moves.append({'period': period, 'move': None, 'lawful': None,
                           'outcome': res.get('error', 'no move')})
             continue
         lawful, ground = judge(s, move, period)
-        s.history.append(f'Period {period}: you chose {move}. {ground}')
+        s.history.append(f'Period {period}: you chose {shown_id(world, move)}. {ground}')
         moves.append({'period': period, 'move': move, 'lawful': lawful,
                       'reason': res.get('reason', '')})
         if s.office in ('tribune', 'consul'):
             break
-    return {'participant': name, 'condition': condition, 'trial': trial,
+    return {'participant': name, 'world': world, 'condition': condition, 'trial': trial,
             'moves': moves, 'office': s.office, 'adopted': s.adopted_in is not None}
 
 
@@ -219,22 +325,27 @@ def run_trial(name: str, participant, condition: str, trial: int, record) -> dic
 def stub_reader(ctx, s):
     if ctx['condition'] == 'open':
         if s.status == 'plebeian':
-            return {'move': 'stand_for_tribunate'}
-        return {'move': ADOPT if s.adopted_in is None else 'do_nothing'}
-    if 'praetorship' not in s.held:
-        return {'move': 'stand_for_praetorship'}
-    return {'move': 'stand_for_consulship'}
+            move = 'stand_for_tribunate'
+        else:
+            move = ADOPT if s.adopted_in is None else 'do_nothing'
+    elif 'praetorship' not in s.held:
+        move = 'stand_for_praetorship'
+    else:
+        move = 'stand_for_consulship'
+    return {'move': shown_id(s.world, move)}
 
 
 def stub_naive(ctx, s):
-    goal = 'stand_for_consulship' if ctx['condition'] == 'career' else 'stand_for_tribunate'
-    return {'move': goal}
+    move = 'stand_for_consulship' if ctx['condition'] == 'career' else 'stand_for_tribunate'
+    return {'move': shown_id(s.world, move)}
 
 
 def stub_salient(ctx, s):
     if s.adopted_in is None:
-        return {'move': ADOPT}
-    return {'move': 'stand_for_tribunate' if s.status == 'plebeian' else 'do_nothing'}
+        move = ADOPT
+    else:
+        move = 'stand_for_tribunate' if s.status == 'plebeian' else 'do_nothing'
+    return {'move': shown_id(s.world, move)}
 
 
 STUBS = {'stub:reader': stub_reader, 'stub:naive': stub_naive, 'stub:salient': stub_salient}
@@ -482,7 +593,8 @@ def run_jobs(jobs: list, workers: int, record) -> list:
 
 def mode_stub(args) -> int:
     calls = []
-    jobs = [(name, fn, cond, t) for name, fn in STUBS.items()
+    jobs = [(f'{name}@{world}', fn, world, cond, t)
+            for world in WORLDS for name, fn in STUBS.items()
             for cond in CONDITIONS for t in range(args.trials)]
     results = run_jobs(jobs, 1, calls.append)
     text = report(results, calls, 'Спайк crack-finding: заглушки')
@@ -490,7 +602,8 @@ def mode_stub(args) -> int:
     print(text)
     table = tally(results)
     expected = {'stub:reader': True, 'stub:naive': False, 'stub:salient': False}
-    failed = [name for name, want in expected.items() if verdict(table[name])[0] != want]
+    failed = [f'{name}@{world}' for world in WORLDS for name, want in expected.items()
+              if verdict(table[f'{name}@{world}'])[0] != want]
     for name in failed:
         print(f'criterion check failed for {name}', file=sys.stderr)
     return 1 if failed else 0
@@ -503,12 +616,13 @@ def mode_live(args) -> int:
         return 2
     configs = [c.strip() for c in args.configs.split(',') if c.strip()]
     unknown = [c for c in configs if c not in CONFIGS]
-    if unknown:
-        print(f'unknown configs: {unknown}; known: {list(CONFIGS)}', file=sys.stderr)
+    if unknown or args.world not in WORLDS:
+        print(f'unknown configs {unknown} or world {args.world!r}; '
+              f'known configs: {list(CONFIGS)}, worlds: {list(WORLDS)}', file=sys.stderr)
         return 2
 
     (HERE / 'records').mkdir(exist_ok=True)
-    path = HERE / 'records' / time.strftime('run-%Y%m%d-%H%M%S.jsonl')
+    path = HERE / 'records' / time.strftime(f'run-{args.world}-%Y%m%d-%H%M%S.jsonl')
     lock = threading.Lock()
     calls = []
 
@@ -519,13 +633,14 @@ def mode_live(args) -> int:
                 f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
     spend = Spend(args.max_rub)
-    jobs = [(f'v4.1-flash:{c}', live_participant(env, c, spend), cond, t)
+    jobs = [(f'v4.1-flash:{c}@{args.world}', live_participant(env, c, spend), args.world, cond, t)
             for c in configs for cond in CONDITIONS for t in range(args.trials)]
     results = run_jobs(jobs, args.workers, record)
     text = report(results, calls, f'Спайк crack-finding: {path.name}')
-    (HERE / 'report.md').write_text(text)
+    report_path = HERE / args.report
+    report_path.write_text(text)
     print(text)
-    print(f'records: {path}\nspent: {spend.rub:.2f} RUB')
+    print(f'records: {path}\nreport: {report_path}\nspent: {spend.rub:.2f} RUB')
     return 0
 
 
@@ -533,18 +648,20 @@ def mode_replay(args) -> int:
     records, calls = {}, []
     for line in Path(args.records).read_text().splitlines():
         rec = json.loads(line)
+        rec.setdefault('world', 'roman')  # records before worlds existed are roman
         calls.append(rec)
         records[(rec['participant'], rec['condition'], rec['trial'], rec['period'])] = rec
-    trials = sorted({key[:3] for key in records})
+    trials = sorted({(p, records[(p, c, t, n)]['world'], c, t) for p, c, t, n in records})
     participant = replay_participant(records)
     try:
-        results = [run_trial(name, participant, cond, t, lambda _: None)
-                   for name, cond, t in trials]
+        results = [run_trial(name, participant, world, cond, t, lambda _: None)
+                   for name, world, cond, t in trials]
     except ReplayDivergence as e:
         print(f'replay-divergence: {e}', file=sys.stderr)
         return 1
     text = report(results, calls, f'Спайк crack-finding: {Path(args.records).name}')
-    (HERE / 'report.md').write_text(text)
+    report_path = HERE / args.report
+    report_path.write_text(text)
     print(text)
     return 0
 
@@ -555,12 +672,15 @@ def main() -> int:
     stub = sub.add_parser('stub')
     stub.add_argument('--trials', type=int, default=5)
     live = sub.add_parser('live')
+    live.add_argument('--world', default='neutral')
     live.add_argument('--configs', default=','.join(CONFIGS))
-    live.add_argument('--trials', type=int, default=10)
-    live.add_argument('--workers', type=int, default=8)
-    live.add_argument('--max-rub', type=float, default=300.0)
+    live.add_argument('--trials', type=int, default=2)
+    live.add_argument('--workers', type=int, default=6)
+    live.add_argument('--max-rub', type=float, default=10.0)
+    live.add_argument('--report', default='report.md')
     replay = sub.add_parser('replay')
     replay.add_argument('records')
+    replay.add_argument('--report', default='report.md')
     args = parser.parse_args()
     return {'stub': mode_stub, 'live': mode_live, 'replay': mode_replay}[args.mode](args)
 
