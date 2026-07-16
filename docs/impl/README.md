@@ -20,6 +20,8 @@ tags:
 - [[docs/impl/durable-commit|durable-commit]] — как один контракт фиксации
   реализуется разными механизмами;
 - [[docs/impl/api-transport|api-transport]] — HTTP и gRPC наружу;
-- [[docs/impl/tooling|tooling]] — хуки, генерация, инструменты по мере роста.
+- [[docs/impl/tooling|tooling]] — хуки, генерация, инструменты по мере роста;
+- [[docs/impl/llm-deepseek-v4.1-flash|llm-deepseek-v4.1-flash]] — модель спайка
+  через RouterAI: цены, кэш, рассуждение, структурированный выход, маршрутизация.
 
 Источники и проверяемые утверждения — в [[docs/research/README|research]].

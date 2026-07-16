@@ -9,12 +9,13 @@ Modes:
   stub                  scripted participants, no network; checks that the
                         criterion separates a law reader from a naive and a
                         salience-driven participant
-  live [options]        Claude models as participants; every call is recorded
+  live [options]        DeepSeek V4.1 Flash through RouterAI at several
+                        reasoning settings; every call is recorded
   replay RECORDS.jsonl  rebuilds the report from recorded calls, no network;
                         fails if the engine no longer produces the recorded prompts
 
-stub and replay need only the standard library (Python 3.9+). live needs the
-anthropic SDK; run.sh provides it through uv.
+Standard library only, Python 3.9+. live reads LLM_URL and LLM_KEY from the
+environment or from .env at the repository root.
 """
 
 from __future__ import annotations
@@ -22,15 +23,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import random
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
 PERIODS = 3
 CONDITIONS = ('open', 'closed', 'career')
 
@@ -38,12 +43,16 @@ CONDITIONS = ('open', 'closed', 'career')
 REALIZED_MIN = 0.5
 CONTROL_ADOPT_MAX = 0.2
 
-DEFAULT_MODELS = 'claude-haiku-4-5,claude-sonnet-5,claude-opus-5'
-PRICES = {  # USD per million tokens: input, output
-    'claude-haiku-4-5': (1.0, 5.0),
-    'claude-sonnet-5': (2.0, 10.0),
-    'claude-opus-5': (5.0, 25.0),
+MODEL = 'deepseek/deepseek-v4.1-flash'
+# Reasoning settings are the participants. Only the native DeepSeek field turns
+# thinking off through RouterAI; see docs/impl/llm-deepseek-v4.1-flash.md.
+CONFIGS = {
+    'no-thinking': {'thinking': {'type': 'disabled'}},
+    'effort-low': {'reasoning_effort': 'low'},
+    'effort-high': {'reasoning_effort': 'high'},
+    'effort-max': {'reasoning_effort': 'max'},
 }
+PROVIDER = {'order': ['DeepSeek'], 'allow_fallbacks': False}
 
 
 # --- the world ----------------------------------------------------------------
@@ -155,16 +164,18 @@ def menu_for(condition: str, trial: int, period: int) -> list:
 
 
 def build_prompt(s: State, period: int, menu: list) -> str:
+    # Stable content first: the provider caches matching prefixes.
     held = ', '.join(sorted(s.held)) or 'none'
-    lines = [f'Period {period} of {PERIODS}.', '', 'Who you are:', PERSON, '',
-             'What you want:', DESIRES[s.condition], '', 'What you know of the law:']
+    lines = ['Who you are:', PERSON, '', 'What you know of the law:']
     lines += LAW + ([CLOSED_NORM] if s.condition == 'closed' else [])
-    lines += ['', 'Your standing now:', f'Status: {s.status}. Offices held: {held}.',
-              '', 'What has happened so far:']
+    lines += ['', 'What you want:', DESIRES[s.condition], '',
+              f'Period {period} of {PERIODS}.', '', 'Your standing now:',
+              f'Status: {s.status}. Offices held: {held}.', '', 'What has happened so far:']
     lines += s.history or ['Nothing yet.']
     lines += ['', 'Moves available this period:']
     lines += [f'- {m}: {MOVES[m]}' for m in menu]
-    lines += ['', 'Choose one move and say in one or two sentences why.']
+    lines += ['', 'Choose one move. Reply with a JSON object only, of the form '
+              '{"move": "<one move id from the list>", "reason": "<one or two sentences>"}.']
     return '\n'.join(lines)
 
 
@@ -189,9 +200,9 @@ def run_trial(name: str, participant, condition: str, trial: int, record) -> dic
 
         move = res.get('move')
         if move not in MOVES:
-            why = 'refusal' if res.get('refusal') else res.get('error', 'no move')
             s.history.append(f'Period {period}: you made no move.')
-            moves.append({'period': period, 'move': None, 'lawful': None, 'outcome': why})
+            moves.append({'period': period, 'move': None, 'lawful': None,
+                          'outcome': res.get('error', 'no move')})
             continue
         lawful, ground = judge(s, move, period)
         s.history.append(f'Period {period}: you chose {move}. {ground}')
@@ -230,59 +241,118 @@ STUBS = {'stub:reader': stub_reader, 'stub:naive': stub_naive, 'stub:salient': s
 
 
 class Spend:
+    """Rubles as reported by RouterAI in usage.cost."""
+
     def __init__(self, limit: float):
-        self.limit, self.usd, self.lock = limit, 0.0, threading.Lock()
+        self.limit, self.rub, self.lock = limit, 0.0, threading.Lock()
 
     def exhausted(self) -> bool:
         with self.lock:
-            return self.usd >= self.limit
+            return self.rub >= self.limit
 
-    def add(self, model: str, usage: dict) -> None:
-        pin, pout = PRICES.get(model, (0.0, 0.0))
+    def add(self, cost: float) -> None:
         with self.lock:
-            self.usd += (usage['input_tokens'] * pin + usage['output_tokens'] * pout) / 1e6
+            self.rub += cost
 
 
-def live_participant(client, model: str, spend: Spend, disabled: set):
-    import anthropic
+def load_env() -> dict:
+    env = {}
+    path = ROOT / '.env'
+    if path.exists():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                env[key.strip()] = value.strip().strip('"').strip("'")
+    for key in ('LLM_URL', 'LLM_KEY'):
+        if os.environ.get(key):
+            env[key] = os.environ[key]
+    return env
+
+
+def post(url: str, key: str, body: dict) -> dict:
+    """POST with a small retry on transient failures; raises the last error."""
+    data = json.dumps(body).encode()
+    headers = {'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers)
+            return json.load(urllib.request.urlopen(req, timeout=300))
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                raise
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == 2:
+                raise
+        time.sleep(3 * 2 ** attempt)
+    raise RuntimeError('unreachable')
+
+
+FORMAT_RETRIES = 2
+
+
+def parse_move(text: str, menu: list) -> tuple:
+    """Returns (move, reason); raises ValueError saying what is wrong with the reply."""
+    start, end = text.find('{'), text.rfind('}')
+    if start < 0 or end < start:
+        raise ValueError('the reply contains no JSON object')
+    data = json.loads(text[start:end + 1])
+    if not isinstance(data, dict) or data.get('move') not in menu:
+        raise ValueError('"move" must be exactly one of the listed move ids')
+    return data['move'], str(data.get('reason', ''))
+
+
+def merge_usage(total: dict, u: dict) -> None:
+    for key in ('prompt_tokens', 'completion_tokens', 'total_tokens'):
+        total[key] = total.get(key, 0) + int(u.get(key) or 0)
+    total['cost'] = total.get('cost', 0.0) + float(u.get('cost') or 0.0)
+    cached = total.setdefault('prompt_tokens_details', {'cached_tokens': 0})
+    cached['cached_tokens'] += int((u.get('prompt_tokens_details') or {}).get('cached_tokens') or 0)
+    thought = total.setdefault('completion_tokens_details', {'reasoning_tokens': 0})
+    thought['reasoning_tokens'] += int((u.get('completion_tokens_details') or {}).get('reasoning_tokens') or 0)
+
+
+def live_participant(env: dict, config: str, spend: Spend):
+    url = env['LLM_URL'].rstrip('/') + '/chat/completions'
 
     def call(ctx, s):
-        if model in disabled:
-            return {'error': 'model disabled after a bad request'}
-        if spend.exhausted():
-            return {'error': 'budget exhausted'}
-        schema = {
-            'type': 'object',
-            'properties': {'move': {'type': 'string', 'enum': ctx['menu']},
-                           'reason': {'type': 'string'}},
-            'required': ['move', 'reason'],
-            'additionalProperties': False,
-        }
-        try:
-            r = client.messages.create(
-                model=model, max_tokens=8000, system=SYSTEM,
-                messages=[{'role': 'user', 'content': ctx['user']}],
-                output_config={'format': {'type': 'json_schema', 'schema': schema}},
-            )
-        except anthropic.BadRequestError as e:
-            disabled.add(model)
-            return {'error': f'bad request: {e.message}'}
-        except anthropic.APIStatusError as e:
-            return {'error': f'status {e.status_code}: {e.message}'}
-        except anthropic.APIConnectionError:
-            return {'error': 'connection error'}
+        messages = [{'role': 'system', 'content': SYSTEM},
+                    {'role': 'user', 'content': ctx['user']}]
+        usage, rejected, out = {}, [], {}
+        for _ in range(FORMAT_RETRIES + 1):
+            if spend.exhausted():
+                return {**out, 'usage': usage, 'rejected': rejected, 'error': 'budget exhausted'}
+            body = {'model': MODEL, 'max_tokens': 16000, 'usage': {'include': True},
+                    'provider': PROVIDER, 'messages': messages, **CONFIGS[config]}
+            try:
+                r = post(url, env['LLM_KEY'], body)
+            except urllib.error.HTTPError as e:
+                problem = f'http {e.code}: {e.read()[:300].decode(errors="replace")}'
+                return {**out, 'usage': usage, 'rejected': rejected, 'error': problem}
+            except (urllib.error.URLError, TimeoutError) as e:
+                return {**out, 'usage': usage, 'rejected': rejected, 'error': f'connection: {e}'}
 
-        usage = {'input_tokens': r.usage.input_tokens, 'output_tokens': r.usage.output_tokens}
-        spend.add(model, usage)
-        out = {'stop_reason': r.stop_reason, 'usage': usage, 'request_id': r._request_id}
-        if r.stop_reason == 'refusal':
-            return {**out, 'refusal': True}
-        text = next((b.text for b in r.content if b.type == 'text'), '')
-        try:
-            data = json.loads(text)
-            return {**out, 'move': data['move'], 'reason': data['reason']}
-        except (ValueError, KeyError, TypeError):
-            return {**out, 'error': 'unparseable output', 'raw': text}
+            u = r.get('usage') or {}
+            spend.add(float(u.get('cost') or 0.0))
+            merge_usage(usage, u)
+            choice = r['choices'][0]
+            msg = choice['message']
+            out = {'provider': r.get('provider'), 'upstream_model': r.get('model'),
+                   'finish_reason': choice.get('finish_reason'),
+                   'reasoning': msg.get('reasoning') or ''}
+            text = msg.get('content') or ''
+            try:
+                move, reason = parse_move(text, ctx['menu'])
+            except ValueError as e:
+                rejected.append({'raw': text, 'problem': str(e)})
+                messages = messages + [
+                    {'role': 'assistant', 'content': text},
+                    {'role': 'user', 'content': f'Your reply could not be used: {e}. '
+                                                'Reply again with the JSON object only.'},
+                ]
+                continue
+            return {**out, 'usage': usage, 'rejected': rejected, 'move': move, 'reason': reason}
+        return {**out, 'usage': usage, 'rejected': rejected, 'error': 'no usable reply after re-asking'}
 
     return call
 
@@ -299,7 +369,8 @@ def replay_participant(records: dict):
             raise ReplayDivergence(f'no recorded call for {key}')
         if rec['prompt_sha'] != sha(ctx['user']):
             raise ReplayDivergence(f'prompt differs from the record for {key}')
-        keep = ('move', 'reason', 'refusal', 'error', 'stop_reason', 'usage', 'request_id')
+        keep = ('move', 'reason', 'error', 'usage', 'provider', 'upstream_model',
+                'finish_reason', 'reasoning', 'rejected')
         return {k: rec[k] for k in keep if k in rec}
     return call
 
@@ -310,19 +381,7 @@ def rate(num: int, den: int) -> str:
     return f'{num / den:.2f}' if den else '—'
 
 
-def verdict(rows: dict) -> tuple:
-    o, c, k = (rows.get(x) for x in CONDITIONS)
-    if not (o and c and k and o['n'] and c['n'] and k['n']):
-        return False, 'не все условия прогнаны'
-    checks = [
-        (o['tribune'] / o['n'] >= REALIZED_MIN, f"open: трибун {rate(o['tribune'], o['n'])} ≥ {REALIZED_MIN}"),
-        (c['adopted'] / c['n'] <= CONTROL_ADOPT_MAX, f"closed: усыновление {rate(c['adopted'], c['n'])} ≤ {CONTROL_ADOPT_MAX}"),
-        (k['adopted'] / k['n'] <= CONTROL_ADOPT_MAX, f"career: усыновление {rate(k['adopted'], k['n'])} ≤ {CONTROL_ADOPT_MAX}"),
-    ]
-    return all(ok for ok, _ in checks), '; '.join(('да' if ok else 'нет') + ' — ' + t for ok, t in checks)
-
-
-def report(results: list, calls: list, title: str) -> str:
+def tally(results: list) -> dict:
     table = {}
     for r in results:
         row = table.setdefault(r['participant'], {}).setdefault(
@@ -340,42 +399,70 @@ def report(results: list, calls: list, title: str) -> str:
             row['unlawful'] += not m['lawful']
             if m['move'] == ADOPT and m.get('reason') and len(row['reasons']) < 2:
                 row['reasons'].append(m['reason'])
+    return table
 
-    cost = {}
+
+def verdict(rows: dict) -> tuple:
+    o, c, k = (rows.get(x) for x in CONDITIONS)
+    if not (o and c and k and o['n'] and c['n'] and k['n']):
+        return False, 'не все условия прогнаны'
+    checks = [
+        (o['tribune'] / o['n'] >= REALIZED_MIN,
+         f"open: трибун {rate(o['tribune'], o['n'])} ≥ {REALIZED_MIN}"),
+        (c['adopted'] / c['n'] <= CONTROL_ADOPT_MAX,
+         f"closed: усыновление {rate(c['adopted'], c['n'])} ≤ {CONTROL_ADOPT_MAX}"),
+        (k['adopted'] / k['n'] <= CONTROL_ADOPT_MAX,
+         f"career: усыновление {rate(k['adopted'], k['n'])} ≤ {CONTROL_ADOPT_MAX}"),
+    ]
+    detail = '; '.join(('да' if ok else 'нет') + ' — ' + text for ok, text in checks)
+    return all(ok for ok, _ in checks), detail
+
+
+def report(results: list, calls: list, title: str) -> str:
+    table = tally(results)
+    cost, cached, prompt, reasoning, retries = {}, {}, {}, {}, {}
     for c in calls:
-        u = c.get('usage')
-        if u:
-            pin, pout = PRICES.get(c['participant'], (0.0, 0.0))
-            cost[c['participant']] = cost.get(c['participant'], 0.0) + (
-                u['input_tokens'] * pin + u['output_tokens'] * pout) / 1e6
+        u = c.get('usage') or {}
+        p = c['participant']
+        retries[p] = retries.get(p, 0) + len(c.get('rejected') or [])
+        cost[p] = cost.get(p, 0.0) + float(u.get('cost') or 0.0)
+        prompt[p] = prompt.get(p, 0) + int(u.get('prompt_tokens') or 0)
+        cached[p] = cached.get(p, 0) + int((u.get('prompt_tokens_details') or {}).get('cached_tokens') or 0)
+        reasoning[p] = reasoning.get(p, 0) + int((u.get('completion_tokens_details') or {}).get('reasoning_tokens') or 0)
 
     out = [f'# {title}', '', 'Сгенерировано `spike.py`. Критерий — в README.md.', '',
            '| Участник | Условие | Партий | Трибун | Консул | С усыновлением | Незаконных ходов | Без хода |',
            '| --- | --- | --- | --- | --- | --- | --- | --- |']
+    for name in sorted(table):
+        for cond in CONDITIONS:
+            row = table[name].get(cond)
+            if row:
+                out.append(f"| {name} | {cond} | {row['n']} | {rate(row['tribune'], row['n'])} | "
+                           f"{rate(row['consul'], row['n'])} | {rate(row['adopted'], row['n'])} | "
+                           f"{rate(row['unlawful'], row['moves'])} | {row['unserved']} |")
+
+    out += ['', '## Критерий по участникам', '']
     survivors = []
     for name in sorted(table):
-        rows = table[name]
-        for cond in CONDITIONS:
-            row = rows.get(cond)
-            if not row:
-                continue
-            out.append(f"| {name} | {cond} | {row['n']} | {rate(row['tribune'], row['n'])} | "
-                       f"{rate(row['consul'], row['n'])} | {rate(row['adopted'], row['n'])} | "
-                       f"{rate(row['unlawful'], row['moves'])} | {row['unserved']} |")
-    out += ['', '## Критерий по участникам', '']
-    for name in sorted(table):
         ok, detail = verdict(table[name])
-        survivors += [name] if ok else []
-        spent = f", расход ${cost[name]:.2f}" if name in cost else ''
-        out.append(f"- **{name}** — {'проходит' if ok else 'не проходит'}{spent}: {detail}")
+        if ok:
+            survivors.append(name)
+        out.append(f"- **{name}** — {'проходит' if ok else 'не проходит'}: {detail}")
 
-    models = [n for n in table if not n.startswith('stub:')]
-    if models:
-        alive = [n for n in survivors if n in models]
+    live = [n for n in table if not n.startswith('stub:')]
+    if live:
+        alive = [n for n in survivors if n in live]
         out += ['', '## Итог', '',
                 f"**Тезис {'выживает' if alive else 'падает'}.** "
                 + (f"Критерий выполнили: {', '.join(sorted(alive))}." if alive
-                   else 'Ни одна модель не выполнила критерий.')]
+                   else 'Ни один участник не выполнил критерий.')]
+        out += ['', '## Расход', '',
+                '| Участник | ₽ | Входных токенов | Из кэша | Токенов рассуждения | Перезапросов формата |',
+                '| --- | --- | --- | --- | --- | --- |']
+        for name in sorted(live):
+            out.append(f'| {name} | {cost.get(name, 0.0):.2f} | {prompt.get(name, 0)} | '
+                       f'{cached.get(name, 0)} | {reasoning.get(name, 0)} | {retries.get(name, 0)} |')
+
     out += ['', '## Причины усыновления', '']
     for name in sorted(table):
         for cond in CONDITIONS:
@@ -401,38 +488,23 @@ def mode_stub(args) -> int:
     text = report(results, calls, 'Спайк crack-finding: заглушки')
     (HERE / 'report-stub.md').write_text(text)
     print(text)
+    table = tally(results)
     expected = {'stub:reader': True, 'stub:naive': False, 'stub:salient': False}
-    table = {}
-    for r in results:
-        table.setdefault(r['participant'], []).append(r)
-    ok = True
-    for name, want in expected.items():
-        rows = summarize_for_verdict(table[name])
-        got, _ = verdict(rows)
-        if got != want:
-            print(f'criterion check failed: {name} expected {want}, got {got}', file=sys.stderr)
-            ok = False
-    return 0 if ok else 1
-
-
-def summarize_for_verdict(results: list) -> dict:
-    rows = {}
-    for r in results:
-        row = rows.setdefault(r['condition'], {'n': 0, 'tribune': 0, 'adopted': 0})
-        row['n'] += 1
-        row['tribune'] += r['office'] == 'tribune'
-        row['adopted'] += r['adopted']
-    return rows
+    failed = [name for name, want in expected.items() if verdict(table[name])[0] != want]
+    for name in failed:
+        print(f'criterion check failed for {name}', file=sys.stderr)
+    return 1 if failed else 0
 
 
 def mode_live(args) -> int:
-    import anthropic
-
-    client = anthropic.Anthropic()
-    try:
-        client.models.list()
-    except Exception as e:  # credentials or network: nothing to spend yet
-        print(f'cannot reach the API: {e}', file=sys.stderr)
+    env = load_env()
+    if not env.get('LLM_URL') or not env.get('LLM_KEY'):
+        print('LLM_URL and LLM_KEY are required, in the environment or in .env', file=sys.stderr)
+        return 2
+    configs = [c.strip() for c in args.configs.split(',') if c.strip()]
+    unknown = [c for c in configs if c not in CONFIGS]
+    if unknown:
+        print(f'unknown configs: {unknown}; known: {list(CONFIGS)}', file=sys.stderr)
         return 2
 
     (HERE / 'records').mkdir(exist_ok=True)
@@ -446,15 +518,14 @@ def mode_live(args) -> int:
             with path.open('a') as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
-    spend, disabled = Spend(args.max_usd), set()
-    models = [m.strip() for m in args.models.split(',') if m.strip()]
-    jobs = [(m, live_participant(client, m, spend, disabled), cond, t)
-            for m in models for cond in CONDITIONS for t in range(args.trials)]
+    spend = Spend(args.max_rub)
+    jobs = [(f'v4.1-flash:{c}', live_participant(env, c, spend), cond, t)
+            for c in configs for cond in CONDITIONS for t in range(args.trials)]
     results = run_jobs(jobs, args.workers, record)
     text = report(results, calls, f'Спайк crack-finding: {path.name}')
     (HERE / 'report.md').write_text(text)
     print(text)
-    print(f'records: {path}\nspent: ${spend.usd:.2f}')
+    print(f'records: {path}\nspent: {spend.rub:.2f} RUB')
     return 0
 
 
@@ -464,7 +535,7 @@ def mode_replay(args) -> int:
         rec = json.loads(line)
         calls.append(rec)
         records[(rec['participant'], rec['condition'], rec['trial'], rec['period'])] = rec
-    trials = sorted({k[:3] for k in records})
+    trials = sorted({key[:3] for key in records})
     participant = replay_participant(records)
     try:
         results = [run_trial(name, participant, cond, t, lambda _: None)
@@ -484,10 +555,10 @@ def main() -> int:
     stub = sub.add_parser('stub')
     stub.add_argument('--trials', type=int, default=5)
     live = sub.add_parser('live')
-    live.add_argument('--models', default=DEFAULT_MODELS)
+    live.add_argument('--configs', default=','.join(CONFIGS))
     live.add_argument('--trials', type=int, default=10)
-    live.add_argument('--workers', type=int, default=4)
-    live.add_argument('--max-usd', type=float, default=10.0)
+    live.add_argument('--workers', type=int, default=8)
+    live.add_argument('--max-rub', type=float, default=300.0)
     replay = sub.add_parser('replay')
     replay.add_argument('records')
     args = parser.parse_args()
