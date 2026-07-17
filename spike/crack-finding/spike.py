@@ -532,9 +532,16 @@ def verdict(rows: dict) -> tuple:
 def report(results: list, calls: list, title: str) -> str:
     table = tally(results)
     cost, cached, prompt, reasoning, retries = {}, {}, {}, {}, {}
+    made, mismatch = {}, {}
     for c in calls:
         u = c.get('usage') or {}
         p = c['participant']
+        move, why = c.get('move'), c.get('reason') or ''
+        if move:
+            made[p] = made.get(p, 0) + 1
+            # Lower bound: only a reason that names another move id by its id is caught.
+            if move not in why and any(m != move and m in why for m in c.get('menu') or []):
+                mismatch[p] = mismatch.get(p, 0) + 1
         retries[p] = retries.get(p, 0) + len(c.get('rejected') or [])
         cost[p] = cost.get(p, 0.0) + float(u.get('cost') or 0.0)
         prompt[p] = prompt.get(p, 0) + int(u.get('prompt_tokens') or 0)
@@ -568,11 +575,13 @@ def report(results: list, calls: list, title: str) -> str:
                 + (f"Критерий выполнили: {', '.join(sorted(alive))}." if alive
                    else 'Ни один участник не выполнил критерий.')]
         out += ['', '## Расход', '',
-                '| Участник | ₽ | Входных токенов | Из кэша | Токенов рассуждения | Перезапросов формата |',
-                '| --- | --- | --- | --- | --- | --- |']
+                '| Участник | ₽ | Входных токенов | Из кэша | Токенов рассуждения | Перезапросов формата '
+                '| Причина называет другой ход, не меньше |',
+                '| --- | --- | --- | --- | --- | --- | --- |']
         for name in sorted(live):
             out.append(f'| {name} | {cost.get(name, 0.0):.2f} | {prompt.get(name, 0)} | '
-                       f'{cached.get(name, 0)} | {reasoning.get(name, 0)} | {retries.get(name, 0)} |')
+                       f'{cached.get(name, 0)} | {reasoning.get(name, 0)} | {retries.get(name, 0)} | '
+                       f'{mismatch.get(name, 0)} из {made.get(name, 0)} |')
 
     out += ['', '## Причины усыновления', '']
     for name in sorted(table):
