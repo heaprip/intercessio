@@ -352,14 +352,32 @@ STUBS = {'stub:reader': stub_reader, 'stub:naive': stub_naive, 'stub:salient': s
 
 
 class Spend:
-    """Rubles as reported by RouterAI in usage.cost."""
+    """Rubles as reported by RouterAI in usage.cost.
 
-    def __init__(self, limit: float):
-        self.limit, self.rub, self.lock = limit, 0.0, threading.Lock()
+    A call reserves an estimate before it starts and settles the real cost after,
+    so parallel workers cannot all pass the limit at once. A single call that costs
+    more than its reserve can still overshoot by the difference.
+    """
+
+    def __init__(self, limit: float, reserve: float = 1.0):
+        self.limit, self.reserve = limit, reserve
+        self.rub, self.pending, self.lock = 0.0, 0.0, threading.Lock()
 
     def exhausted(self) -> bool:
         with self.lock:
-            return self.rub >= self.limit
+            return self.rub + self.pending >= self.limit
+
+    def start(self) -> bool:
+        with self.lock:
+            if self.rub + self.pending + self.reserve > self.limit:
+                return False
+            self.pending += self.reserve
+            return True
+
+    def finish(self, cost: float) -> None:
+        with self.lock:
+            self.pending -= self.reserve
+            self.rub += cost
 
     def add(self, cost: float) -> None:
         with self.lock:
@@ -431,20 +449,22 @@ def live_participant(env: dict, config: str, spend: Spend):
                     {'role': 'user', 'content': ctx['user']}]
         usage, rejected, out = {}, [], {}
         for _ in range(FORMAT_RETRIES + 1):
-            if spend.exhausted():
+            if not spend.start():
                 return {**out, 'usage': usage, 'rejected': rejected, 'error': 'budget exhausted'}
             body = {'model': MODEL, 'max_tokens': 16000, 'usage': {'include': True},
                     'provider': PROVIDER, 'messages': messages, **CONFIGS[config]}
             try:
                 r = post(url, env['LLM_KEY'], body)
             except urllib.error.HTTPError as e:
+                spend.finish(0.0)
                 problem = f'http {e.code}: {e.read()[:300].decode(errors="replace")}'
                 return {**out, 'usage': usage, 'rejected': rejected, 'error': problem}
             except (urllib.error.URLError, TimeoutError) as e:
+                spend.finish(0.0)
                 return {**out, 'usage': usage, 'rejected': rejected, 'error': f'connection: {e}'}
 
             u = r.get('usage') or {}
-            spend.add(float(u.get('cost') or 0.0))
+            spend.finish(float(u.get('cost') or 0.0))
             merge_usage(usage, u)
             choice = r['choices'][0]
             msg = choice['message']

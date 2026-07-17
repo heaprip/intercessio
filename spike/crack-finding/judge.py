@@ -115,19 +115,21 @@ def ask(env: dict, config: str, spend: spike.Spend, rec: dict) -> dict:
                 {'role': 'user', 'content': judge_prompt(rec)}]
     usage, rejected = {}, []
     for _ in range(spike.FORMAT_RETRIES + 1):
-        if spend.exhausted():
+        if not spend.start():
             return {'usage': usage, 'rejected': rejected, 'error': 'budget exhausted'}
         body = {'model': spike.MODEL, 'max_tokens': 8000, 'usage': {'include': True},
                 'provider': spike.PROVIDER, 'messages': messages, **spike.CONFIGS[config]}
         try:
             r = spike.post(url, env['LLM_KEY'], body)
         except urllib.error.HTTPError as e:
+            spend.finish(0.0)
             return {'usage': usage, 'rejected': rejected,
                     'error': f'http {e.code}: {e.read()[:300].decode(errors="replace")}'}
         except (urllib.error.URLError, TimeoutError) as e:
+            spend.finish(0.0)
             return {'usage': usage, 'rejected': rejected, 'error': f'connection: {e}'}
         u = r.get('usage') or {}
-        spend.add(float(u.get('cost') or 0.0))
+        spend.finish(float(u.get('cost') or 0.0))
         spike.merge_usage(usage, u)
         text = r['choices'][0]['message'].get('content') or ''
         try:
