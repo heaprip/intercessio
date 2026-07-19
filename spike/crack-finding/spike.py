@@ -355,33 +355,41 @@ class Spend:
     """Rubles as reported by RouterAI in usage.cost.
 
     A call reserves an estimate before it starts and settles the real cost after,
-    so parallel workers cannot all pass the limit at once. A single call that costs
-    more than its reserve can still overshoot by the difference.
+    so parallel workers cannot all pass the limit at once. A call waits while other
+    calls hold reserves, and is refused only when the money actually spent leaves no
+    room for one more reserve. A single call that costs more than its reserve can
+    still overshoot by the difference.
     """
 
     def __init__(self, limit: float, reserve: float = 1.0):
         self.limit, self.reserve = limit, reserve
-        self.rub, self.pending, self.lock = 0.0, 0.0, threading.Lock()
+        self.rub, self.pending = 0.0, 0.0
+        self.lock = threading.Condition()
 
     def exhausted(self) -> bool:
         with self.lock:
-            return self.rub + self.pending >= self.limit
+            return self.rub + self.reserve > self.limit
 
     def start(self) -> bool:
         with self.lock:
-            if self.rub + self.pending + self.reserve > self.limit:
-                return False
-            self.pending += self.reserve
-            return True
+            while True:
+                if self.rub + self.reserve > self.limit:
+                    return False
+                if self.rub + self.pending + self.reserve <= self.limit:
+                    self.pending += self.reserve
+                    return True
+                self.lock.wait()
 
     def finish(self, cost: float) -> None:
         with self.lock:
             self.pending -= self.reserve
             self.rub += cost
+            self.lock.notify_all()
 
     def add(self, cost: float) -> None:
         with self.lock:
             self.rub += cost
+            self.lock.notify_all()
 
 
 def load_env() -> dict:
