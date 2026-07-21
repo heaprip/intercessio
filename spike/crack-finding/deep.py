@@ -488,11 +488,15 @@ def mode_live(args) -> int:
     if not env.get('LLM_URL') or not env.get('LLM_KEY'):
         print('LLM_URL and LLM_KEY are required, in the environment or in .env', file=sys.stderr)
         return 2
+    if args.model not in spike.MODELS:
+        print(f'unknown model {args.model!r}; known: {list(spike.MODELS)}', file=sys.stderr)
+        return 2
+    spec = spike.MODELS[args.model]
     configs = [c.strip() for c in args.configs.split(',') if c.strip()]
-    unknown = [c for c in configs if c not in spike.CONFIGS]
+    unknown = [c for c in configs if c not in spec['configs']]
     if unknown or args.desires not in DESIRES:
         print(f'unknown configs {unknown} or variant {args.desires!r}; known configs: '
-              f'{list(spike.CONFIGS)}, variants: {list(DESIRES)}', file=sys.stderr)
+              f'{list(spec["configs"])}, variants: {list(DESIRES)}', file=sys.stderr)
         return 2
 
     (HERE / 'records').mkdir(exist_ok=True)
@@ -508,7 +512,8 @@ def mode_live(args) -> int:
 
     spend = spike.Spend(args.max_rub, args.reserve_rub)
     suffix = 'deep' if args.desires == 'untimed' else f'deep-{args.desires}'
-    jobs = [(f'v4.1-flash:{c}@{suffix}', spike.live_participant(env, c, spend), args.desires, cond, t)
+    jobs = [(f"{spec['label']}:{c}@{suffix}", spike.live_participant(env, c, spend, args.model),
+             args.desires, cond, t)
             for c in configs for cond in CONDITIONS for t in range(args.trials)]
     results = run_jobs(jobs, args.workers, record)
     text = report(results, calls, f'Трещина поглубже: {path.name}')
@@ -549,6 +554,7 @@ def main() -> int:
     stub.add_argument('--desires', default='timed', choices=list(DESIRES))
     live = sub.add_parser('live')
     live.add_argument('--desires', default='timed')
+    live.add_argument('--model', default='deepseek')
     live.add_argument('--configs', default='no-thinking,effort-low')
     live.add_argument('--trials', type=int, default=2)
     live.add_argument('--workers', type=int, default=8)

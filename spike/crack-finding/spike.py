@@ -449,8 +449,26 @@ def merge_usage(total: dict, u: dict) -> None:
     thought['reasoning_tokens'] += int((u.get('completion_tokens_details') or {}).get('reasoning_tokens') or 0)
 
 
-def live_participant(env: dict, config: str, spend: Spend):
+# Participant models. Each names its RouterAI id, the provider it is pinned to and
+# how its reasoning settings are spelled; see docs/impl for each model.
+MODELS = {
+    'deepseek': {'id': MODEL, 'label': 'v4.1-flash', 'provider': PROVIDER, 'configs': CONFIGS},
+    'granite': {
+        'id': 'ibm-granite/granite-4.2-8b',
+        'label': 'granite-4.2-8b',
+        'provider': {'order': ['CoreWeave'], 'allow_fallbacks': False},
+        'configs': {
+            'no-thinking': {'reasoning_effort': 'none'},
+            'effort-low': {'reasoning': {'effort': 'low'}},
+            'full': {'reasoning': {'effort': 'high'}},
+        },
+    },
+}
+
+
+def live_participant(env: dict, config: str, spend: Spend, model: str = 'deepseek'):
     url = env['LLM_URL'].rstrip('/') + '/chat/completions'
+    spec = MODELS[model]
 
     def call(ctx, s):
         messages = [{'role': 'system', 'content': SYSTEM},
@@ -459,8 +477,8 @@ def live_participant(env: dict, config: str, spend: Spend):
         for _ in range(FORMAT_RETRIES + 1):
             if not spend.start():
                 return {**out, 'usage': usage, 'rejected': rejected, 'error': 'budget exhausted'}
-            body = {'model': MODEL, 'max_tokens': 16000, 'usage': {'include': True},
-                    'provider': PROVIDER, 'messages': messages, **CONFIGS[config]}
+            body = {'model': spec['id'], 'max_tokens': 16000, 'usage': {'include': True},
+                    'provider': spec['provider'], 'messages': messages, **spec['configs'][config]}
             try:
                 r = post(url, env['LLM_KEY'], body)
             except urllib.error.HTTPError as e:
