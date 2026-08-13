@@ -25,6 +25,9 @@ tags:
 - [[docs/research/player-feedback-in-games|player-feedback-in-games]] — как
   системные игры сообщают игроку о последствиях: шкалы, граф причин, события,
   отложенный счёт; варианты ориентира без балла;
+- [[docs/research/llm-participants|llm-participants]] — находят ли участники-модели
+  трещины закона, понимают ли, что их проверяют, насколько однородны; итог спайка
+  `crack-finding` и литература;
 - [[docs/research/legalruleml|legalruleml]] — стандарт представления норм:
   вытеснение, сила правила, временные измерения; что берём и чего не берём;
 - [[docs/research/architecture-and-tooling-sources|architecture-and-tooling-sources]]
