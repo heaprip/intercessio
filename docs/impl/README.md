@@ -21,6 +21,8 @@ tags:
   реализуется разными механизмами;
 - [[docs/impl/api-transport|api-transport]] — HTTP и gRPC наружу;
 - [[docs/impl/tooling|tooling]] — хуки, генерация, инструменты по мере роста;
+- [[docs/impl/llm-routerai|llm-routerai]] — роутер спайка: расход, закрепление
+  провайдера, поля рассуждения, кэш на префиксе, структурированный выход;
 - [[docs/impl/llm-deepseek-v4.1-flash|llm-deepseek-v4.1-flash]] — модель спайка
   через RouterAI: цены, кэш, рассуждение, структурированный выход, маршрутизация;
 - [[docs/impl/llm-granite-4.2-8b|llm-granite-4.2-8b]] — вторая модель спайка, плотная
