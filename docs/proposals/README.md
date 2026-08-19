@@ -15,18 +15,8 @@ tags:
 Сейчас в очереди:
 
 - [[docs/proposals/concept-law-under-pressure|concept-law-under-pressure]] —
-  общая концепция: три контура, атрибуция провала по слоям, метод правового
-  ядра и сравнение областей по нему, сквозной казус о трещине;
-- области, закрытые тем же методом:
-  [[docs/proposals/concept-actors|участники]],
-  [[docs/proposals/concept-director|давление и дуга партии]],
-  [[docs/proposals/concept-society|общество]],
-  [[docs/proposals/concept-authoring|авторство нормы]],
-  [[docs/proposals/concept-stack|стопка и отсев]],
-  [[docs/proposals/concept-ai-contour|AI-контур]],
-  [[docs/proposals/concept-acts|акт должности]];
-- [[docs/proposals/vision-branches|vision-branches]] — вести видения проекта в
-  ветках с реестром и тестом-убийцей.
+  рабочая гипотеза автора: участники-модели как противники закона, атрибуция
+  провала по слоям, риски и то, что гипотезу примет или отбросит.
 
 Долго живущая очередь черновиков — сама по себе плохой знак: она означает, что
 документы в остальных каталогах заведомо устарели, а читать приходится и их, и
