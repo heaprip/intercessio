@@ -1,0 +1,73 @@
+error   arity-mismatch             d_exempt                     duty used with 4 arguments, declared 6
+error   arity-mismatch             f1                           established used with 4 arguments, declared 5
+error   arity-mismatch             r_c1                         established used with 4 arguments, declared 5
+error   arity-mismatch             r_counter                    in_force used with 1 arguments, declared 2
+error   arity-mismatch             r_decide                     duty used with 4 arguments, declared 6
+error   arity-mismatch             r_expire                     duty used with 5 arguments, declared 6
+error   arity-mismatch             r_munus                      duty used with 4 arguments, declared 6
+error   arity-mismatch             r_repair                     duty used with 4 arguments, declared 6
+error   arity-mismatch             r_viol                       duty used with 5 arguments, declared 6
+error   arity-mismatch             r_viol_a                     duty used with 4 arguments, declared 6
+error   arity-mismatch             r_viol_m                     duty used with 4 arguments, declared 6
+error   invalid-term               d_exempt                     anonymous variable in head ¬duty(P, munus, maintain, _)
+error   invalid-term               f1                           fact argument tenure_confirmed(marcus) is not a constant or number
+error   invalid-term               r_age                        builtin argument N - B in N - B < min_age(Off) must be a variable, number or now
+error   invalid-term               r_age                        builtin argument min_age(Off) in N - B < min_age(Off) must be a variable, number or now
+error   invalid-term               r_c1                         argument tenure_confirmed(P) in established(_, tenure_confirmed(P), _, _) is not a variable or constant
+error   invalid-term               r_counter                    argument veto_of(Q, A) in vetoes(P, veto_of(Q, A)) is not a variable or constant
+error   invalid-term               r_counter                    head argument veto_of(Q, A) is not a variable or constant
+error   invalid-term               r_decide                     head argument N0 + limit is not a variable or constant
+error   invalid-term               r_decide                     head argument decide(Pt) is not a variable or constant
+error   invalid-term               r_expire                     anonymous variable in head duty(P, resign, _, achieve, T)
+error   invalid-term               r_iter_seq                   argument N - 1 in held_at(P, Off, N - 1) is not a variable or constant
+error   invalid-term               r_munus                      anonymous variable in head duty(P, munus, maintain, _)
+error   invalid-term               r_repair                     head argument N + 1 is not a variable or constant
+error   invalid-term               r_repair                     head argument penalty(munus) is not a variable or constant
+error   invalid-term               r_susp                       anonymous variable in head ¬competent(Off, _)
+error   invalid-term               r_tenure                     head argument To - From is not a variable or constant
+error   invalid-term               r_veto                       anonymous variable in head ¬in_force(A, _)
+error   unbound-builtin            r_age                        N - B < min_age(Off): N, Off not bound
+error   unbound-builtin            r_expire                     N > T: N not bound
+error   unbound-builtin            r_incompat                   F =< N: N not bound
+error   unbound-builtin            r_incompat                   N =< T: N not bound
+error   unbound-builtin            r_susp                       F =< N: N not bound
+error   unbound-builtin            r_susp                       N =< T: N not bound
+error   unbound-builtin            r_suspend                    N =< M: N not bound
+error   unbound-builtin            r_veto                       F =< N: N not bound
+error   unbound-builtin            r_veto                       N =< T: N not bound
+error   unbound-builtin            r_viol                       N > T: N not bound
+error   unbound-builtin            r_viol_a                     N > D: N not bound
+error   undeclared-predicate       r_decide                     predicate resolved/1 is not declared
+error   undeclared-predicate       r_iter_seq                   predicate held_at/3 is not declared
+error   undeclared-predicate       r_offense                    predicate about/3 is not declared
+error   unknown-reference          r_decide                     constant limit is not declared
+error   unknown-reference          r_noreview > r_reviewable    rule r_reviewable does not exist
+error   unsafe-rule                d_a4                         head variables P, S not bound by the body
+error   unsafe-rule                r_age                        head variables Off not bound by the body
+error   unsafe-rule                r_lift                       head variables R not bound by the body
+error   unsafe-rule                r_nocomp                     head variables Kind, Off not bound by the body
+error   unsafe-rule                r_unborne                    head variables K, N, P not bound by the body
+error   unsafe-rule                r_viol                       head variables N not bound by the body
+error   unsafe-rule                r_viol_a                     head variables N not bound by the body
+finding defeat-without-conflict    r_adopt > r_adopt_out        r_adopt and r_adopt_out do not conclude opposite literals
+finding duplicate-rule             r_iter, r_iter_abs           rules have the same head and body
+finding fact-and-conclusion        in_force                     in_force is stored as fact and concluded by r_counter, r_veto
+finding negation-never-concluded   held                         ¬held is a condition that no rule concludes
+finding negative-only-conclusion   reviewable                   reviewable is only ever concluded negatively
+finding unconsumed-conclusion      reviewable                   reviewable is concluded by r_noreview and consumed by no rule
+finding unconsumed-conclusion      valid                        valid is concluded by r_act_ok and consumed by no rule
+finding unconsumed-right           ius_commercii                right ius_commercii enters no condition
+finding unconsumed-right           ius_conubii                  right ius_conubii enters no condition
+finding unconsumed-right           ius_suffragii                right ius_suffragii enters no condition
+finding unordered-conflict         d_a4, r_adopt_out            d_a4 and r_adopt_out conclude opposite status with no declared order
+finding unordered-conflict         r_adopt, r_revoke            r_adopt and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_adopt, r_strip             r_adopt and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_adopt_out, r_born          r_adopt_out and r_born conclude opposite status with no declared order
+finding unordered-conflict         r_born, r_revoke             r_born and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_born, r_strip              r_born and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_edict, r_revoke            r_edict and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_edict, r_strip             r_edict and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_elig, r_iter_abs           r_elig and r_iter_abs conclude opposite eligible with no declared order
+finding unordered-conflict         r_elig, r_iter_seq           r_elig and r_iter_seq conclude opposite eligible with no declared order
+finding unordered-conflict         r_revoke, r_status           r_revoke and r_status conclude opposite status with no declared order
+finding unordered-conflict         r_status, r_strip            r_status and r_strip conclude opposite status with no declared order

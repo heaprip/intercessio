@@ -1,0 +1,13 @@
+finding unconsumed-conclusion      holds_right                  holds_right is concluded by r_rights and consumed by no rule
+finding unconsumed-right           ius_commercii                right ius_commercii enters no condition
+finding unconsumed-right           ius_conubii                  right ius_conubii enters no condition
+finding unconsumed-right           ius_honorum                  right ius_honorum enters no condition
+finding unconsumed-right           ius_suffragii                right ius_suffragii enters no condition
+finding unordered-conflict         r_born, r_revoke             r_born and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_born, r_strip              r_born and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_edict, r_revoke            r_edict and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_edict, r_strip             r_edict and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_registered, r_revoke       r_registered and r_revoke conclude opposite status with no declared order
+finding unordered-conflict         r_registered, r_strip        r_registered and r_strip conclude opposite status with no declared order
+finding unordered-conflict         r_revoke, r_status           r_revoke and r_status conclude opposite status with no declared order
+finding unordered-conflict         r_status, r_strip            r_status and r_strip conclude opposite status with no declared order

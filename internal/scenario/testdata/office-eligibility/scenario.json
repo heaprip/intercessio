@@ -1,0 +1,63 @@
+{
+  "start_period": 10,
+  "statuses": [
+    {"id": "patricius", "rights": ["ius_commercii", "ius_conubii", "ius_suffragii", "ius_honorum"], "duties": [], "heritable": true},
+    {"id": "plebeius", "rights": ["ius_commercii", "ius_conubii", "ius_suffragii", "ius_tribunicium"], "duties": [], "heritable": true}
+  ],
+  "offices": [
+    {"id": "consul", "competences": ["execute"], "term": 1, "requires_rights": ["ius_honorum"], "min_age": 30, "incompatible": ["censor"]},
+    {"id": "tribunus", "competences": ["intercessio"], "term": 1, "requires_rights": ["ius_tribunicium"]},
+    {"id": "censor", "competences": ["establish_fact", "adrogatio"], "term": 2, "requires_rights": ["ius_honorum"], "requires_prior": ["consul"], "iteration_barred": true}
+  ],
+  "people": [
+    {"id": "clodius", "status": "patricius", "born": 1},
+    {"id": "fonteius", "status": "plebeius", "born": 1}
+  ],
+  "documents": [
+    {"id": "constitution", "level": 1}
+  ],
+  "norms": [
+    {"id": "B1", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_registered", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "registered", "a": ["P", "S"]}]},
+      {"id": "r_rights", "head": {"p": "holds_right", "a": ["P", "R"]}, "body": [{"p": "status", "a": ["P", "S"]}, {"p": "bundle", "a": ["S", "R"]}]}
+    ]},
+    {"id": "B2", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_nocomp", "head": {"p": "competent", "a": ["Off", "Kind"], "neg": true}, "body": [{"p": "office", "a": ["Off"]}, {"p": "action_kind", "a": ["Kind"]}]},
+      {"id": "r_comp", "head": {"p": "competent", "a": ["Off", "Kind"]}, "body": [{"p": "responsibility", "a": ["Off", "Kind"]}]},
+      {"id": "r_elig", "head": {"p": "eligible", "a": ["P", "Off"]}, "body": [{"p": "requires_right", "a": ["Off", "R"]}, {"p": "holds_right", "a": ["P", "R"]}]},
+      {"id": "r_age", "head": {"p": "eligible", "a": ["P", "Off"], "neg": true}, "body": [
+        {"p": "born", "a": ["P", "B"]}, {"p": "min_age", "a": ["Off", "A"]}, {"p": "minus", "a": ["now", "B", "Age"]}, {"p": "<", "a": ["Age", "A"]}]},
+      {"id": "r_unheld", "head": {"p": "held", "a": ["P", "Off"], "neg": true}, "body": [{"p": "person", "a": ["P"]}, {"p": "office", "a": ["Off"]}]},
+      {"id": "r_held", "head": {"p": "held", "a": ["P", "Off"]}, "body": [{"p": "occupies", "a": ["P", "Off", "_", "_"]}]},
+      {"id": "r_prior", "head": {"p": "eligible", "a": ["P", "Off"], "neg": true}, "body": [{"p": "requires_prior", "a": ["Off", "Prev"]}, {"p": "held", "a": ["P", "Prev"], "neg": true}]},
+      {"id": "r_lawful", "head": {"p": "lawful_tenure", "a": ["P", "Off"]}, "body": [{"p": "occupies", "a": ["P", "Off", "_", "_"]}, {"p": "eligible", "a": ["P", "Off"]}]},
+      {"id": "r_usurp", "head": {"p": "usurped", "a": ["P", "Off"]}, "body": [{"p": "occupies", "a": ["P", "Off", "_", "_"]}, {"p": "eligible", "a": ["P", "Off"], "neg": true}]}
+    ]},
+    {"id": "B3", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_incompat", "head": {"p": "eligible", "a": ["P", "O2"], "neg": true}, "body": [
+        {"p": "incompatible", "a": ["O1", "O2"]}, {"p": "occupies", "a": ["P", "O1", "F", "T"]}, {"p": "=<", "a": ["F", "now"]}, {"p": "=<", "a": ["now", "T"]}]},
+      {"id": "r_iter", "head": {"p": "eligible", "a": ["P", "Off"], "neg": true}, "body": [{"p": "iteration_barred", "a": ["Off"]}, {"p": "held", "a": ["P", "Off"]}]}
+    ]},
+    {"id": "B4", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_adopt", "head": {"p": "status", "a": ["P", "plebeius"]}, "body": [{"p": "adrogatio", "a": ["A", "P", "Q"]}, {"p": "in_force", "a": ["A", "_"]}, {"p": "status", "a": ["Q", "plebeius"]}]},
+      {"id": "r_adopt_out", "head": {"p": "status", "a": ["P", "patricius"], "neg": true}, "body": [{"p": "adrogatio", "a": ["A", "P", "_"]}, {"p": "in_force", "a": ["A", "_"]}]},
+      {"id": "r_act_ok", "head": {"p": "valid", "a": ["A"]}, "body": [{"p": "performed", "a": ["A", "adrogatio", "Off", "_"]}, {"p": "competent", "a": ["Off", "adrogatio"]}]}
+    ]}
+  ],
+  "defeats": [
+    {"over": "r_age", "under": "r_elig"},
+    {"over": "r_prior", "under": "r_elig"},
+    {"over": "r_incompat", "under": "r_elig"},
+    {"over": "r_iter", "under": "r_elig"},
+    {"over": "r_adopt", "under": "r_adopt_out"},
+    {"over": "r_held", "under": "r_unheld"},
+    {"over": "r_comp", "under": "r_nocomp"}
+  ],
+  "declarations": [],
+  "facts": [
+    {"id": "a1", "p": "adrogatio", "a": ["a1", "clodius", "fonteius"], "by": "censor", "period": 11},
+    {"id": "a1_performed", "p": "performed", "a": ["a1", "adrogatio", "censor", "clodius"], "by": "censor", "period": 11},
+    {"id": "a1_in_force", "p": "in_force", "a": ["a1", 12], "by": "scenario", "period": 12},
+    {"id": "occ_clodius", "p": "occupies", "a": ["clodius", "tribunus", 13, 13], "by": "scenario", "period": 13}
+  ]
+}

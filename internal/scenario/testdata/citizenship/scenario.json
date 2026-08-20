@@ -1,0 +1,89 @@
+{
+  "start_period": 30,
+  "statuses": [
+    {"id": "peregrinus", "rights": ["ius_commercii"], "duties": [], "heritable": false},
+    {"id": "civis", "rights": ["ius_commercii", "ius_conubii", "ius_suffragii", "ius_honorum"], "duties": ["munus"], "heritable": true}
+  ],
+  "offices": [
+    {"id": "praetor", "competences": ["grant_status"], "term": 1},
+    {"id": "censor", "competences": ["establish_fact"], "term": 2},
+    {"id": "tribunus", "competences": ["intercessio"], "term": 1}
+  ],
+  "people": [
+    {"id": "marcus", "status": "peregrinus"},
+    {"id": "gaius", "status": "civis"}
+  ],
+  "documents": [
+    {"id": "constitution", "level": 1},
+    {"id": "code_citizenship", "level": 2}
+  ],
+  "norms": [
+    {"id": "A4", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "d_a4", "s": "defeater", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "norm_in_force", "a": ["a4"]}, {"p": "person", "a": ["P"]}, {"p": "status_kind", "a": ["S"]}]}
+    ]},
+    {"id": "A2", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_nocomp", "head": {"p": "competent", "a": ["Off", "Kind"], "neg": true}, "body": [{"p": "office", "a": ["Off"]}, {"p": "action_kind", "a": ["Kind"]}]},
+      {"id": "r_comp", "head": {"p": "competent", "a": ["Off", "Kind"]}, "body": [{"p": "responsibility", "a": ["Off", "Kind"]}]},
+      {"id": "r_ultra", "head": {"p": "ultra_vires", "a": ["Act"]}, "body": [{"p": "performed", "a": ["Act", "Kind", "Off", "_"]}, {"p": "competent", "a": ["Off", "Kind"], "neg": true}]}
+    ]},
+    {"id": "A1", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_registered", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "registered", "a": ["P", "S"]}]},
+      {"id": "r_rights", "head": {"p": "holds_right", "a": ["P", "R"]}, "body": [{"p": "status", "a": ["P", "S"]}, {"p": "bundle", "a": ["S", "R"]}]},
+      {"id": "r_born", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "born_to", "a": ["P", "Q"]}, {"p": "status", "a": ["Q", "S"]}, {"p": "heritable", "a": ["S"]}]},
+      {"id": "r_edict", "head": {"p": "status", "a": ["P", "civis"]}, "body": [{"p": "edict", "a": ["E", "all_free"]}, {"p": "free", "a": ["P"]}, {"p": "in_force", "a": ["E", "_"]}]},
+      {"id": "r_revoke", "head": {"p": "status", "a": ["P", "S"], "neg": true}, "body": [{"p": "revocation", "a": ["R", "P", "S"]}, {"p": "in_force", "a": ["R", "_"]}]},
+      {"id": "r_strip", "head": {"p": "status", "a": ["P", "S"], "neg": true}, "body": [{"p": "strips_vested", "a": ["N", "S"]}, {"p": "applies_to", "a": ["N", "P"]}]}
+    ]},
+    {"id": "C1", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "constitutive", "rules": [
+      {"id": "r_tenure", "head": {"p": "tenure", "a": ["P", "D"]}, "body": [{"p": "served", "a": ["P", "F", "T"]}, {"p": "minus", "a": ["T", "F", "D"]}]},
+      {"id": "r_c1", "head": {"p": "entitled", "a": ["P", "civis"]}, "body": [
+        {"p": "status", "a": ["P", "peregrinus"]}, {"p": "tenure", "a": ["P", "D"]}, {"p": ">=", "a": ["D", 25]},
+        {"p": "established", "a": ["_", "tenure_confirmed", "P", "_", "_"]}]},
+      {"id": "r_status", "head": {"p": "status", "a": ["P", "civis"]}, "body": [{"p": "decision", "a": ["D", "Pt", "grant", "_", "_"]}, {"p": "petition", "a": ["Pt", "P", "citizenship", "_"]}, {"p": "in_force", "a": ["D", "_"]}]},
+      {"id": "r_grant", "head": {"p": "may_grant", "a": ["Off", "P", "S"]}, "body": [{"p": "competent", "a": ["Off", "grant_status"]}, {"p": "entitled", "a": ["P", "S"]}]}
+    ]},
+    {"id": "C2", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_c2", "head": {"p": "entitled", "a": ["P", "civis"], "neg": true}, "body": [{"p": "offense", "a": ["P", "O"]}]}
+    ]},
+    {"id": "C3", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_c3", "head": {"p": "entitled", "a": ["P", "civis"]}, "body": [{"p": "offense", "a": ["P", "O"]}, {"p": "merit", "a": ["P", "M"]}, {"p": "covers", "a": ["M", "O"]}]}
+    ]},
+    {"id": "C4", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
+      {"id": "r_munus", "head": {"p": "duty", "a": ["P", "res_publica", "munus", "none", "maintain", "none"]}, "body": [{"p": "status", "a": ["P", "civis"]}]},
+      {"id": "d_exempt", "s": "defeater", "head": {"p": "duty", "a": ["P", "res_publica", "munus", "none", "maintain", "none"], "neg": true}, "body": [{"p": "exempt", "a": ["E", "P", "munus"]}, {"p": "in_force", "a": ["E", "_"]}]},
+      {"id": "r_unborne", "head": {"p": "borne", "a": ["P", "K", "now"], "neg": true}, "body": [{"p": "duty", "a": ["P", "_", "K", "_", "_", "_"]}]},
+      {"id": "r_borne", "head": {"p": "borne", "a": ["P", "K", "N"]}, "body": [{"p": "bears", "a": ["P", "K", "N"]}]},
+      {"id": "r_viol_m", "head": {"p": "violated", "a": ["P", "K", "now"]}, "body": [{"p": "duty", "a": ["P", "_", "K", "_", "maintain", "none"]}, {"p": "borne", "a": ["P", "K", "now"], "neg": true}]},
+      {"id": "r_viol_a", "head": {"p": "violated", "a": ["O", "A", "now"]}, "body": [{"p": "duty", "a": ["O", "_", "A", "_", "achieve", "D"]}, {"p": ">", "a": ["now", "D"]}, {"p": "borne", "a": ["O", "A", "now"], "neg": true}]},
+      {"id": "r_unsettled", "head": {"p": "settled", "a": ["Pt"], "neg": true}, "body": [{"p": "petition", "a": ["Pt", "_", "_", "_"]}]},
+      {"id": "r_settled", "head": {"p": "settled", "a": ["Pt"]}, "body": [{"p": "decision", "a": ["_", "Pt", "_", "_", "_"]}]},
+      {"id": "r_decide", "head": {"p": "duty", "a": ["praetor", "P", "decide", "Pt", "achieve", "D"]}, "body": [
+        {"p": "petition", "a": ["Pt", "P", "_", "N0"]}, {"p": "settled", "a": ["Pt"], "neg": true},
+        {"p": "term_limit", "a": ["decide", "L"]}, {"p": "plus", "a": ["N0", "L", "D"]}]},
+      {"id": "r_repair", "head": {"p": "duty", "a": ["P", "res_publica", "penalty", "munus", "achieve", "D"]}, "body": [{"p": "violated", "a": ["P", "munus", "N"]}, {"p": "plus", "a": ["N", 1, "D"]}]},
+      {"id": "r_offense", "head": {"p": "offense", "a": ["P", "K"]}, "body": [{"p": "decision", "a": ["D", "C", "guilty", "_", "_"]}, {"p": "petition", "a": ["C", "P", "K", "_"]}, {"p": "in_force", "a": ["D", "_"]}]}
+    ]}
+  ],
+  "defeats": [
+    {"over": "r_c3", "under": "r_c2"},
+    {"over": "r_c2", "under": "r_c1"},
+    {"over": "r_revoke", "under": "d_a4"},
+    {"over": "d_a4", "under": "r_strip"},
+    {"over": "r_comp", "under": "r_nocomp"},
+    {"over": "r_borne", "under": "r_unborne"},
+    {"over": "d_exempt", "under": "r_munus"},
+    {"over": "r_settled", "under": "r_unsettled"}
+  ],
+  "declarations": [
+    {"p": "norm_in_force", "a": ["a4"]},
+    {"p": "term_limit", "a": ["decide", 3]}
+  ],
+  "facts": [
+    {"id": "served_marcus", "p": "served", "a": ["marcus", 5, "open"], "by": "scenario"},
+    {"id": "f1", "p": "established", "a": ["f1", "tenure_confirmed", "marcus", "censor", 30], "by": "censor", "period": 30},
+    {"id": "p1", "p": "petition", "a": ["p1", "marcus", "citizenship", 30], "by": "marcus", "period": 30},
+    {"id": "occ_gaius", "p": "occupies", "a": ["gaius", "praetor", 31, 31], "by": "scenario"},
+    {"id": "d1", "p": "decision", "a": ["d1", "p1", "grant", "praetor", 31], "by": "praetor", "period": 31},
+    {"id": "d1_in_force", "p": "in_force", "a": ["d1", 32], "by": "scenario", "period": 32}
+  ]
+}
