@@ -172,13 +172,15 @@ flowchart TD
 ```mermaid
 flowchart TD
   %% components
-  scenario
   llm_runtime[llm-runtime]
   power_graph[power-graph]
   journal --> period
   corpus --> period
   facts --> period
   facts --> journal
+  scenario --> corpus
+  scenario --> facts
+  scenario --> deduction
   entitlement --> corpus
   entitlement --> facts
   entitlement --> deduction
@@ -214,8 +216,9 @@ flowchart TD
   storage --> journal
 ```
 
-Листья — `period`, `deduction`, `llm-runtime` и `scenario`: их можно делать в
-любой момент. Но лист `scenario` условный — см. «Не решено» ниже.
+Листья — `period`, `deduction` и `llm-runtime`: их можно делать в любой момент.
+`scenario` требует от `corpus`, `facts` и `deduction` только типов и проверок, а
+не их логики, поэтому загрузчик идёт раньше них.
 
 ## Владение
 
@@ -226,7 +229,7 @@ flowchart TD
 | --- | --- |
 | период | `period` |
 | журнал | `journal` |
-| трасса вывода | `deduction` |
+| трасса вывода; типы правил — правило, литерал, терм, отношение вытеснения | `deduction` |
 | запись вызова модели | `llm-runtime` |
 | сценарий | `scenario` |
 | документ, норма, вид нормы, версия корпуса | `corpus` |
@@ -249,24 +252,22 @@ flowchart TD
 
 | Что | Кандидаты | Где проявляется |
 | --- | --- | --- |
-| типы правил и отношения вытеснения — `Rule`, `Literal`, `Defeat` | `deduction`; `scenario`; отдельный словарь правил | `scenario` определяет их, `deduction` нужны они же, оба объявлены листьями |
-| `Finding` и проверки, общие с загрузчиком | `linter`; собственная диагностика `deduction`; загрузчик делится на разбор и проверку | `scenario` возвращает `Finding` линтера и выполняет его проверки |
-| направление между `scenario` и `corpus`, `facts` | сценарий требует их типов; они требуют сценария | прежний граф рисовал второе, спецификация загрузчика описывает первое |
 | объявление должности | `corpus`; `competence`; `scenario` | компетенции и сроки — нормы конституции, а должности были записаны за `competence` |
 | очередь проверок обязанностей и выборка | `case`; отдельный компонент принуждения | `case` владеет путём дела и циклом обязанностей одновременно |
 | состав записи журнала | `journal`; `censor` | поля перечислены у цензора, пишет `turn`, тип записи нигде |
 | сборка стопки карточек и предложение правки | `report`; `turn`; новый компонент | форма хода принята, владельца у стопки и у роли советника нет |
 
-Первые три определяют форму загрузчика и блокируют веху
-[[docs/design/stages/scenario-loader|scenario-loader]].
+Загрузчик владением больше не заблокирован: типы правил отданы `deduction`, у
+загрузчика и вычислителя свои диагностики, а игровой `Finding` — у линтера,
+`scenario` требует типов `corpus` и `facts`.
 
 ## Общий словарь
 
 Всё, чем корпус вправе оперировать, собрано в
 [[docs/design/predicate-schema|схеме предикатов]]. Это главная точка
 связанности проекта: её используют `corpus`, `facts`, `deduction`,
-`entitlement`, `case`, `competence`, `linter` и `power-graph`. Какой компонент
-владеет её кодовым представлением — первая строка таблицы «Не решено».
+`entitlement`, `case`, `competence`, `linter` и `power-graph`. Кодовым
+представлением правил владеет `deduction`, объявления схемы загружает `scenario`.
 
 ## Четыре шва
 
