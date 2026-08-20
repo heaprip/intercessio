@@ -81,7 +81,9 @@ type Report struct {
 
 **Прототип** — `internal/scenario`, `internal/deduction`, эталонные отчёты в
 `internal/scenario/testdata/*/report.golden`; отчёт по любому сценарию —
-`go run ./cmd/scenario-check schema.json scenario.json`. Веха —
+`go run ./cmd/scenario-check schema.json scenario.json`. Срез на период для
+вычислителя — `Scenario.Program(now)`: в прототипе он берёт только объявленные
+пары вытеснения, потому что `entitlement` ещё нет. Веха —
 [[docs/design/stages/scenario-loader|scenario-loader]].
 
 ## Открыто
