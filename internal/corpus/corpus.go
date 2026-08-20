@@ -37,6 +37,17 @@ type Version struct {
 	Defeats   []deduction.Defeat
 }
 
+// At returns the rules of the norms in force at now.
+func (v Version) At(now period.Period) []deduction.Rule {
+	var out []deduction.Rule
+	for _, n := range v.Norms {
+		if n.InForce <= now {
+			out = append(out, n.Rules...)
+		}
+	}
+	return out
+}
+
 // Rules lists the rules of all norms.
 func (v Version) Rules() []deduction.Rule {
 	var out []deduction.Rule

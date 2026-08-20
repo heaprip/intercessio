@@ -12,6 +12,12 @@ var update = flag.Bool("update", false, "rewrite golden reports")
 
 func load(t *testing.T, dir string) *Report {
 	t.Helper()
+	_, rep := loadScenario(t, dir)
+	return rep
+}
+
+func loadScenario(t *testing.T, dir string) (*Scenario, *Report) {
+	t.Helper()
 	schema, err := os.ReadFile(filepath.Join("testdata", "schema.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -20,11 +26,11 @@ func load(t *testing.T, dir string) *Report {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, rep, err := Load(fstest.MapFS{"schema.json": {Data: schema}, "scenario.json": {Data: world}})
+	s, rep, err := Load(fstest.MapFS{"schema.json": {Data: schema}, "scenario.json": {Data: world}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return rep
+	return s, rep
 }
 
 func golden(t *testing.T, dir, got string) {

@@ -37,6 +37,27 @@ type Fact struct {
 	Prov Provenance
 }
 
+// Snapshot returns the facts known at now: those stated no later than now, with
+// the open end of an interval closed by now.
+func Snapshot(fs []Fact, now period.Period) []Fact {
+	var out []Fact
+	for _, f := range fs {
+		if f.Prov.Period > now {
+			continue
+		}
+		g := f
+		g.Args = make([]Value, len(f.Args))
+		for i, a := range f.Args {
+			if !a.IsNum && a.Const == "open" {
+				a = Value{Num: int(now), IsNum: true}
+			}
+			g.Args[i] = a
+		}
+		out = append(out, g)
+	}
+	return out
+}
+
 func (f Fact) String() string {
 	s := make([]string, len(f.Args))
 	for i, a := range f.Args {
