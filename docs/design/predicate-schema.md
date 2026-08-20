@@ -28,6 +28,7 @@ tags:
 | `born/2` | человек, период рождения | сценарий |
 | `born_to/2` | человек, родитель | сценарий |
 | `free/1` | человек | сценарий |
+| `registered/2` | человек, начальный статус | сценарий |
 | `established/5` | id, что установлено, о ком, кем, период | дело |
 | `petition/4` | id, человек, о чём, период | дело |
 | `decision/5` | id, дело, исход, должность, период | дело |
@@ -62,6 +63,7 @@ tags:
 | `edict/2` | id, класс лиц |
 | `suspends/2` | норма, должность |
 | `next_tenure/3` | должность, период, следующий период |
+| `term_limit/2` | вид обязанности, число периодов |
 
 ## Выводы
 
@@ -81,6 +83,7 @@ tags:
 | `until/2` | акт, период | `r_until` |
 | `reviewable/1` | акт | **не определено** |
 | `valid/1` | акт | `r_act_ok` |
+| `settled/1` | прошение | `r_settled`, `r_unsettled` |
 
 ## Выходы
 
@@ -213,6 +216,30 @@ r_tenure   served(P, F, T), minus(T, F, D)      ⇒ tenure(P, D)
   `¬in_force(A, _)`: предикат одновременно хранится и выводится опровержимым
   правилом.
 
+**Найдены прототипом загрузчика** — чтение их пропустило:
+
+- `a4-unbound-head` — `d_a4 ⇝ status(P, S)` с телом `norm_in_force(a4)`: `P` и
+  `S` не связаны;
+- `expire-unbound` — децемвират: у `r_expire` анонимная переменная в голове, у
+  `r_expire` и `r_viol` период `N` не связан;
+- `counter-veto-arity` — `r_counter` выводит `¬in_force` с одним аргументом;
+- `held-negation-never-concluded` — `r_prior` требует `¬held(P, Prev)`, но
+  отрицательный вывод `held` не даёт ни одно правило. Отрицания по неудаче нет,
+  поэтому ценз «прежняя должность» не срабатывает никогда: нужен умолчание
+  `¬held`, вытесняемое `r_held`. Тот же род у `¬resolved` в `r_decide`;
+- `adopt-defeat-without-conflict` — `r_adopt > r_adopt_out` объявлен между
+  правилами, которые не спорят: `status(P, plebeius)` и `¬status(P, patricius)`;
+- `status-grant-revoke-unordered` — выдача статуса (`r_status`, `r_born`,
+  `r_edict`, `r_adopt`) не упорядочена с лишением (`r_revoke`, `r_strip`).
+  Лишённый статуса получит non liquet, а не отсутствие статуса;
+- `same-polarity-deadlock` — казус о коллегах обещает тупик между `r_veto` и
+  `r_counter` и между `r_iter_abs` и `r_iter_seq`. Но эти пары выводят одно и то
+  же по знаку и не спорят: вывода не будет из-за формы правил, а не из-за
+  необъявленного порядка. Настоящий спор повторения — с `r_elig`;
+- `ultra-vires-argument-order` — `r_ultra` сопоставляет `performed(Act, _, Off,
+  Kind)`, где вид действия стоит на месте предмета. Загрузчик этого не видит:
+  сорта позиций он пока не проверяет.
+
 ## Что выдаст загрузчик
 
 По соглашению о форме правил. **Ошибка** — вычисление невозможно, **замечание** —
@@ -222,8 +249,9 @@ r_tenure   served(P, F, T), minus(T, F, D)      ⇒ tenure(P, D)
 | --- | --- |
 | `resolved-undefined`, `about-undefined`, `held-at-undefined` | ошибка: предикат не объявлен |
 | `reviewable-rule-missing` | ошибка: ссылка на несуществующее правило |
-| `reviewable-never-derived` | замечание: недоопределённое условие |
-| `valid-unconsumed`, `unconsumed-rights` | замечание: мёртвый вывод |
+| `reviewable-never-derived` | замечания: вывод только отрицательный и никем не потребляется |
+| `valid-unconsumed` | замечание: мёртвый вывод |
+| `unconsumed-rights` | замечание: право не входит ни в одно условие — и `ius_suffragii` тоже |
 | `duty-arity-mismatch`, `min-age-arity-mismatch` | ошибка: другая арность |
 | `unbound-head-variable` | ошибка: небезопасное правило |
 | `anonymous-variable-in-head-rules` | ошибка: недопустимый терм |
@@ -233,6 +261,16 @@ r_tenure   served(P, F, T), minus(T, F, D)      ⇒ tenure(P, D)
 | `open-interval-arithmetic` | исчезает: интервал закрывается при чтении фактов |
 | `duplicate-iteration-rule` | замечание: два правила с одинаковыми головой и телом |
 | `fact-and-conclusion` | замечание: у предиката две роли |
+| `a4-unbound-head`, `expire-unbound` | ошибки: небезопасное правило, недопустимый терм, несвязанный встроенный литерал |
+| `counter-veto-arity` | ошибка: другая арность |
+| `held-negation-never-concluded` | замечание: отрицательное условие, которого не выводит ни одно правило |
+| `adopt-defeat-without-conflict` | замечание: порядок между неспорящими правилами |
+| `status-grant-revoke-unordered`, `same-polarity-deadlock` | замечания: спор без объявленного порядка — там, где он есть на деле |
+| `ultra-vires-argument-order` | не ловится: нужна проверка сортов |
+
+Кроме того, `established` с четырьмя аргументами даёт ошибку арности — следствие
+соглашения, а не дефект казуса.
 
 Отсюда смоук-тест: **исходные казусы дают ровно этот список**, а переписанные по
-соглашению — загружаются и дают только замечания.
+соглашению — загружаются и дают только замечания. В прототипе список закреплён
+эталонным отчётом `internal/scenario/testdata/originals/report.golden`.

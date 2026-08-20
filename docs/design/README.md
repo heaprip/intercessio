@@ -176,6 +176,7 @@ flowchart TD
   power_graph[power-graph]
   journal --> period
   corpus --> period
+  corpus --> deduction
   facts --> period
   facts --> journal
   scenario --> corpus

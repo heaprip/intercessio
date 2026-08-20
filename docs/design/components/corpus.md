@@ -10,6 +10,7 @@ owns:
   - corpus-version
 requires:
   - period
+  - deduction
 seam: false
 ---
 
@@ -43,7 +44,8 @@ seam: false
 
 ## Требует
 
-- `period` — датировка норм и срез.
+- `period` — датировка норм и срез;
+- `deduction` — тип правила, которое несёт норма.
 
 ## Не знает
 
