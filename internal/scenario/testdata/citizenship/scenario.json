@@ -19,7 +19,7 @@
   ],
   "norms": [
     {"id": "A4", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
-      {"id": "d_a4", "s": "defeater", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "norm_in_force", "a": ["a4"]}, {"p": "person", "a": ["P"]}, {"p": "status_kind", "a": ["S"]}]}
+      {"id": "d_a4", "s": "defeater", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "person", "a": ["P"]}, {"p": "status_kind", "a": ["S"]}]}
     ]},
     {"id": "A2", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
       {"id": "r_nocomp", "head": {"p": "competent", "a": ["Off", "Kind"], "neg": true}, "body": [{"p": "office", "a": ["Off"]}, {"p": "action_kind", "a": ["Kind"]}]},
@@ -39,7 +39,8 @@
       {"id": "r_c1", "head": {"p": "entitled", "a": ["P", "civis"]}, "body": [
         {"p": "status", "a": ["P", "peregrinus"]}, {"p": "tenure", "a": ["P", "D"]}, {"p": ">=", "a": ["D", 25]},
         {"p": "established", "a": ["_", "tenure_confirmed", "P", "_", "_"]}]},
-      {"id": "r_status", "head": {"p": "status", "a": ["P", "civis"]}, "body": [{"p": "decision", "a": ["D", "Pt", "grant", "_", "_"]}, {"p": "petition", "a": ["Pt", "P", "citizenship", "_"]}, {"p": "in_force", "a": ["D", "_"]}]},
+      {"id": "r_status", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "decision", "a": ["D", "Pt", "grant", "_", "_"]}, {"p": "petition", "a": ["Pt", "P", "S", "_"]}, {"p": "status_kind", "a": ["S"]}, {"p": "in_force", "a": ["D", "_"]}]},
+      {"id": "r_status_out", "head": {"p": "status", "a": ["P", "S"], "neg": true}, "body": [{"p": "decision", "a": ["D", "Pt", "grant", "_", "_"]}, {"p": "petition", "a": ["Pt", "P", "T", "_"]}, {"p": "status_kind", "a": ["T"]}, {"p": "in_force", "a": ["D", "_"]}, {"p": "status_kind", "a": ["S"]}]},
       {"id": "r_grant", "head": {"p": "may_grant", "a": ["Off", "P", "S"]}, "body": [{"p": "competent", "a": ["Off", "grant_status"]}, {"p": "entitled", "a": ["P", "S"]}]}
     ]},
     {"id": "C2", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
@@ -49,8 +50,8 @@
       {"id": "r_c3", "head": {"p": "entitled", "a": ["P", "civis"]}, "body": [{"p": "offense", "a": ["P", "O"]}, {"p": "merit", "a": ["P", "M"]}, {"p": "covers", "a": ["M", "O"]}]}
     ]},
     {"id": "C4", "document": "code_citizenship", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
-      {"id": "r_munus", "head": {"p": "duty", "a": ["P", "res_publica", "munus", "none", "maintain", "none"]}, "body": [{"p": "status", "a": ["P", "civis"]}]},
-      {"id": "d_exempt", "s": "defeater", "head": {"p": "duty", "a": ["P", "res_publica", "munus", "none", "maintain", "none"], "neg": true}, "body": [{"p": "exempt", "a": ["E", "P", "munus"]}, {"p": "in_force", "a": ["E", "_"]}]},
+      {"id": "r_munus", "head": {"p": "duty", "a": ["P", "res_publica", "K", "none", "maintain", "none"]}, "body": [{"p": "status", "a": ["P", "S"]}, {"p": "duty_bundle", "a": ["S", "K"]}]},
+      {"id": "d_exempt", "s": "defeater", "head": {"p": "duty", "a": ["P", "res_publica", "K", "none", "maintain", "none"], "neg": true}, "body": [{"p": "exempt", "a": ["E", "P", "K"]}, {"p": "in_force", "a": ["E", "_"]}]},
       {"id": "r_unborne", "head": {"p": "borne", "a": ["P", "K", "now"], "neg": true}, "body": [{"p": "duty", "a": ["P", "_", "K", "_", "_", "_"]}]},
       {"id": "r_borne", "head": {"p": "borne", "a": ["P", "K", "N"]}, "body": [{"p": "bears", "a": ["P", "K", "N"]}]},
       {"id": "r_viol_m", "head": {"p": "violated", "a": ["P", "K", "now"]}, "body": [{"p": "duty", "a": ["P", "_", "K", "_", "maintain", "none"]}, {"p": "borne", "a": ["P", "K", "now"], "neg": true}]},
@@ -68,6 +69,9 @@
     {"over": "r_c3", "under": "r_c2"},
     {"over": "r_c2", "under": "r_c1"},
     {"over": "r_revoke", "under": "d_a4"},
+    {"over": "r_status", "under": "r_status_out"},
+    {"over": "r_status_out", "under": "r_registered"},
+    {"over": "r_status_out", "under": "d_a4"},
     {"over": "d_a4", "under": "r_strip"},
     {"over": "r_comp", "under": "r_nocomp"},
     {"over": "r_borne", "under": "r_unborne"},
@@ -75,13 +79,12 @@
     {"over": "r_settled", "under": "r_unsettled"}
   ],
   "declarations": [
-    {"p": "norm_in_force", "a": ["a4"]},
     {"p": "term_limit", "a": ["decide", 3]}
   ],
   "facts": [
     {"id": "served_marcus", "p": "served", "a": ["marcus", 5, "open"], "by": "scenario"},
     {"id": "f1", "p": "established", "a": ["f1", "tenure_confirmed", "marcus", "censor", 30], "by": "censor", "period": 30},
-    {"id": "p1", "p": "petition", "a": ["p1", "marcus", "citizenship", 30], "by": "marcus", "period": 30},
+    {"id": "p1", "p": "petition", "a": ["p1", "marcus", "civis", 30], "by": "marcus", "period": 30},
     {"id": "occ_gaius", "p": "occupies", "a": ["gaius", "praetor", 31, 31], "by": "scenario"},
     {"id": "d1", "p": "decision", "a": ["d1", "p1", "grant", "praetor", 31], "by": "praetor", "period": 31},
     {"id": "d1_in_force", "p": "in_force", "a": ["d1", 32], "by": "scenario", "period": 32}

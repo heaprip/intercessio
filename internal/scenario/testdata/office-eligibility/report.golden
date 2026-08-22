@@ -1,6 +1,4 @@
-finding defeat-without-conflict    r_adopt > r_adopt_out        r_adopt and r_adopt_out do not conclude opposite literals
 finding unconsumed-conclusion      valid                        valid is concluded by r_act_ok and consumed by no rule
 finding unconsumed-right           ius_commercii                right ius_commercii enters no condition
 finding unconsumed-right           ius_conubii                  right ius_conubii enters no condition
 finding unconsumed-right           ius_suffragii                right ius_suffragii enters no condition
-finding unordered-conflict         r_adopt_out, r_registered    r_adopt_out and r_registered conclude opposite status with no declared order

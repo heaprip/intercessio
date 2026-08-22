@@ -43,9 +43,8 @@ func TestDerive_OfficeEligibility(t *testing.T) {
 		{12, d.A("status", "clodius", "plebeius"), d.Proved, ""},
 		{12, d.A("holds_right", "clodius", "ius_tribunicium"), d.Proved, ""},
 		{12, d.A("eligible", "clodius", "tribunus"), d.Proved, ""},
-		// adoption and registration conclude opposite patrician status with no
-		// declared order: the casus says "one status", the corpus says deadlock
-		{12, d.A("status", "clodius", "patricius"), d.Unknown, d.Deadlock},
+		// adoption strips every former status, the adopter's status beats that
+		{12, d.A("status", "clodius", "patricius"), d.Disproved, ""},
 		{12, d.A("eligible", "clodius", "censor"), d.Disproved, ""},
 		{12, d.A("eligible", "clodius", "consul"), d.Disproved, ""},
 		{13, d.A("lawful_tenure", "clodius", "tribunus"), d.Proved, ""},
@@ -62,6 +61,8 @@ func TestDerive_Citizenship(t *testing.T) {
 		{30, d.A("duty", "praetor", "marcus", "decide", "p1", "achieve", 33), d.Proved, ""},
 		{31, d.A("status", "marcus", "civis"), d.Unknown, d.Gap},
 		{32, d.A("status", "marcus", "civis"), d.Proved, ""},
+		{32, d.A("status", "marcus", "peregrinus"), d.Disproved, ""},
+		{31, d.A("status", "marcus", "peregrinus"), d.Proved, ""},
 		{32, d.A("duty", "praetor", "marcus", "decide", "p1", "achieve", 33), d.Unknown, d.Gap},
 		{32, d.A("violated", "marcus", "munus", 32), d.Proved, ""},
 		{32, d.A("duty", "marcus", "res_publica", "penalty", "munus", "achieve", 33), d.Proved, ""},

@@ -39,8 +39,8 @@
       {"id": "r_iter", "head": {"p": "eligible", "a": ["P", "Off"], "neg": true}, "body": [{"p": "iteration_barred", "a": ["Off"]}, {"p": "held", "a": ["P", "Off"]}]}
     ]},
     {"id": "B4", "document": "constitution", "enacted": 1, "in_force": 1, "kind": "lasting", "rules": [
-      {"id": "r_adopt", "head": {"p": "status", "a": ["P", "plebeius"]}, "body": [{"p": "adrogatio", "a": ["A", "P", "Q"]}, {"p": "in_force", "a": ["A", "_"]}, {"p": "status", "a": ["Q", "plebeius"]}]},
-      {"id": "r_adopt_out", "head": {"p": "status", "a": ["P", "patricius"], "neg": true}, "body": [{"p": "adrogatio", "a": ["A", "P", "_"]}, {"p": "in_force", "a": ["A", "_"]}]},
+      {"id": "r_adopt", "head": {"p": "status", "a": ["P", "S"]}, "body": [{"p": "adrogatio", "a": ["A", "P", "Q"]}, {"p": "in_force", "a": ["A", "_"]}, {"p": "status", "a": ["Q", "S"]}]},
+      {"id": "r_adopt_out", "head": {"p": "status", "a": ["P", "S"], "neg": true}, "body": [{"p": "adrogatio", "a": ["A", "P", "_"]}, {"p": "in_force", "a": ["A", "_"]}, {"p": "status_kind", "a": ["S"]}]},
       {"id": "r_act_ok", "head": {"p": "valid", "a": ["A"]}, "body": [{"p": "performed", "a": ["A", "adrogatio", "Off", "_"]}, {"p": "competent", "a": ["Off", "adrogatio"]}]}
     ]}
   ],
@@ -50,6 +50,7 @@
     {"over": "r_incompat", "under": "r_elig"},
     {"over": "r_iter", "under": "r_elig"},
     {"over": "r_adopt", "under": "r_adopt_out"},
+    {"over": "r_adopt_out", "under": "r_registered"},
     {"over": "r_held", "under": "r_unheld"},
     {"over": "r_comp", "under": "r_nocomp"}
   ],

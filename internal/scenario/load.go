@@ -262,7 +262,9 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 			gen("min_age", o.ID, *o.MinAge)
 		}
 		for _, x := range o.Incompatible {
+			// incompatibility is symmetric; the world declares it once
 			gen("incompatible", o.ID, x)
+			gen("incompatible", x, o.ID)
 		}
 		if o.IterationBarred {
 			gen("iteration_barred", o.ID)
