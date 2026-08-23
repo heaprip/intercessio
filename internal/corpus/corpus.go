@@ -28,19 +28,34 @@ type Norm struct {
 	InForce  period.Period
 	Kind     Kind
 	Rules    []deduction.Rule
+	// Declarations are the data the norm states: bundles of statuses,
+	// competences and requirements of offices, capacities.
+	Declarations []deduction.Atom
 }
 
 // Version is one immutable state of the corpus.
 type Version struct {
+	Number    int
 	Documents []Document
 	Norms     []Norm
 	Defeats   []deduction.Defeat
 }
 
+// DeclarationsAt returns the declarations of the norms in force at now.
+func (v Version) DeclarationsAt(now period.Period) []deduction.Atom {
+	var out []deduction.Atom
+	for _, n := range v.Norms {
+		if n.InForce <= now {
+			out = append(out, n.Declarations...)
+		}
+	}
+	return out
+}
+
 // Without returns a new version with the norm removed. The receiver is not
 // changed: old versions stay alive for impact.
 func (v Version) Without(normID string) Version {
-	out := Version{Documents: v.Documents, Defeats: v.Defeats}
+	out := Version{Number: v.Number + 1, Documents: v.Documents, Defeats: v.Defeats}
 	for _, n := range v.Norms {
 		if n.ID != normID {
 			out.Norms = append(out.Norms, n)
@@ -51,7 +66,7 @@ func (v Version) Without(normID string) Version {
 
 // With returns a new version with the norm added.
 func (v Version) With(n Norm) Version {
-	out := Version{Documents: v.Documents, Defeats: v.Defeats}
+	out := Version{Number: v.Number + 1, Documents: v.Documents, Defeats: v.Defeats}
 	out.Norms = append(append([]Norm{}, v.Norms...), n)
 	return out
 }

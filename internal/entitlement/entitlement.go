@@ -120,6 +120,7 @@ func Resolve(s Strategy, v corpus.Version, fs []facts.Fact, now period.Period) (
 		prog.Defeats = append(prog.Defeats, deduction.Defeat{Over: p.Over, Under: p.Under})
 		src[[2]string{p.Over, p.Under}] = p.Source
 	}
+	prog.Facts = append(prog.Facts, v.DeclarationsAt(now)...)
 	for _, f := range facts.Snapshot(fs, now) {
 		a := deduction.Atom{Pred: f.Pred}
 		for _, x := range f.Args {

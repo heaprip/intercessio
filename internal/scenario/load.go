@@ -78,7 +78,11 @@ type rawFact struct {
 
 type rawScenario struct {
 	StartPeriod int `json:"start_period"`
-	Statuses    []struct {
+	// WorldNorm names the norm that states the world: bundles of statuses and
+	// declarations of offices go into its declarations. Without it they are
+	// facts.
+	WorldNorm string `json:"world_norm"`
+	Statuses  []struct {
 		ID        string    `json:"id"`
 		Rights    *[]string `json:"rights"`
 		Duties    *[]string `json:"duties"`
@@ -94,6 +98,7 @@ type rawScenario struct {
 		Incompatible      []string `json:"incompatible"`
 		IterationBarred   bool     `json:"iteration_barred"`
 		ConsecutiveBarred bool     `json:"consecutive_barred"`
+		Capacity          *int     `json:"capacity"`
 	} `json:"offices"`
 	People []struct {
 		ID     string `json:"id"`
@@ -199,15 +204,24 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 	}
 
 	s := &Scenario{StartPeriod: period.Period(raw.StartPeriod), Roles: l.roles}
+	var worldDecl []deduction.Atom
 	gen := func(pred string, args ...any) {
 		f := facts.Fact{ID: pred, Pred: pred, Prov: facts.Provenance{By: "scenario", Source: "world"}}
-		for _, a := range args {
-			switch x := a.(type) {
+		a := deduction.Atom{Pred: pred}
+		for _, arg := range args {
+			switch x := arg.(type) {
 			case int:
 				f.Args = append(f.Args, facts.Value{Num: x, IsNum: true})
+				a.Args = append(a.Args, deduction.N(x))
 			case string:
 				f.Args = append(f.Args, facts.Value{Const: x})
+				a.Args = append(a.Args, deduction.C(x))
 			}
+		}
+		if raw.WorldNorm != "" && l.roles[pred] == deduction.RoleDeclaration {
+			l.checkAtom(pred, pred, len(a.Args), true)
+			worldDecl = append(worldDecl, a)
+			return
 		}
 		s.Facts = append(s.Facts, f)
 	}
@@ -271,6 +285,9 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 		}
 		if o.ConsecutiveBarred {
 			gen("consecutive_barred", o.ID)
+		}
+		if o.Capacity != nil {
+			gen("capacity", o.ID, *o.Capacity)
 		}
 	}
 	for _, p := range raw.People {
@@ -353,6 +370,18 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 			rules = append(rules, r)
 		}
 		s.Corpus.Norms = append(s.Corpus.Norms, n)
+	}
+	if raw.WorldNorm != "" {
+		attached := false
+		for i := range s.Corpus.Norms {
+			if s.Corpus.Norms[i].ID == raw.WorldNorm {
+				s.Corpus.Norms[i].Declarations = append(s.Corpus.Norms[i].Declarations, worldDecl...)
+				attached = true
+			}
+		}
+		if !attached {
+			l.add("unknown-reference", deduction.Error, raw.WorldNorm, "world norm %s does not exist", raw.WorldNorm)
+		}
 	}
 	for _, d := range raw.Defeats {
 		s.Corpus.Defeats = append(s.Corpus.Defeats, deduction.Defeat{Over: d.Over, Under: d.Under})

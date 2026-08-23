@@ -21,6 +21,7 @@
     {"name": "marks", "arity": 3, "role": "fact"},
     {"name": "concurrence", "arity": 2, "role": "fact"},
     {"name": "lifts", "arity": 2, "role": "fact"},
+    {"name": "charge", "arity": 4, "role": "fact"},
 
     {"name": "bundle", "arity": 2, "role": "declaration"},
     {"name": "duty_bundle", "arity": 2, "role": "declaration"},
@@ -39,6 +40,7 @@
     {"name": "suspends", "arity": 2, "role": "declaration"},
     {"name": "next_tenure", "arity": 3, "role": "declaration"},
     {"name": "term_limit", "arity": 2, "role": "declaration"},
+    {"name": "capacity", "arity": 2, "role": "declaration"},
 
     {"name": "tenure", "arity": 2, "role": "derived"},
     {"name": "status", "arity": 2, "role": "derived"},
@@ -63,6 +65,6 @@
     {"name": "may_grant", "arity": 3, "role": "output"}
   ],
   "constants": ["maintain", "achieve", "grant", "guilty", "citizenship", "all_free", "a4", "d2", "open", "res_publica", "tenure_confirmed"],
-  "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute"],
+  "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute", "inspect", "judge"],
   "duty_kinds": ["munus", "resign", "decide", "penalty"]
 }

@@ -1,0 +1,103 @@
+// Package journal records everything that happened, with provenance.
+//
+// Prototype: an append-only value, written in the same transition as the rest
+// of the state.
+package journal
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/heaprip/intercessio/internal/period"
+)
+
+// Kind is the closed set of entry kinds.
+type Kind string
+
+const (
+	PetitionFiled     Kind = "petition-filed"
+	ChargeFiled       Kind = "charge-filed"
+	ViolationDetected Kind = "violation-detected"
+	Decision          Kind = "decision"
+	NonLiquet         Kind = "non-liquet"
+	UltraVires        Kind = "ultra-vires"
+	Intercessio       Kind = "intercessio"
+	Finalization      Kind = "finalization"
+	Execution         Kind = "execution"
+	Expired           Kind = "expired"
+	Vacant            Kind = "vacant"
+	PeriodSummary     Kind = "period-summary"
+)
+
+// Decider says who made the step: a rule, a stub or a model.
+type Decider string
+
+const (
+	ByRule  Decider = "rule"
+	ByStub  Decider = "stub"
+	ByModel Decider = "model"
+)
+
+// Basis is what the step rested on.
+type Basis struct {
+	Rule     string // the rule the answer rested on, if any
+	Corpus   int    // corpus version
+	Strategy string // resolution strategy
+}
+
+// Entry is one record.
+type Entry struct {
+	Period  period.Period
+	Seq     int
+	Kind    Kind
+	Actor   string
+	Office  string
+	Case    string
+	Subject string
+	Outcome string
+	Basis   Basis
+	Decider Decider
+}
+
+func (e Entry) String() string {
+	var parts []string
+	add := func(k, v string) {
+		if v != "" {
+			parts = append(parts, k+"="+v)
+		}
+	}
+	add("actor", e.Actor)
+	add("office", e.Office)
+	add("case", e.Case)
+	add("subject", e.Subject)
+	add("outcome", e.Outcome)
+	add("rule", e.Basis.Rule)
+	add("by", string(e.Decider))
+	return fmt.Sprintf("%3d #%-3d %-19s %s", e.Period, e.Seq, e.Kind, strings.Join(parts, " "))
+}
+
+// Journal is the sequence of entries.
+type Journal struct {
+	Entries []Entry
+}
+
+// Append returns a new journal with the entries numbered after the last one.
+func (j Journal) Append(es ...Entry) Journal {
+	out := Journal{Entries: append([]Entry{}, j.Entries...)}
+	for _, e := range es {
+		e.Seq = len(out.Entries) + 1
+		out.Entries = append(out.Entries, e)
+	}
+	return out
+}
+
+// Of returns the entries of a kind.
+func (j Journal) Of(k Kind) []Entry {
+	var out []Entry
+	for _, e := range j.Entries {
+		if e.Kind == k {
+			out = append(out, e)
+		}
+	}
+	return out
+}
