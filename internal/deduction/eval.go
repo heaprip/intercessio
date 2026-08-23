@@ -88,11 +88,12 @@ type Reason string
 const (
 	// Gap: no applicable rule either way. Fixed by writing a norm.
 	Gap Reason = "gap"
-	// Deadlock: applicable rules both ways with no order. Fixed by ordering.
+	// Deadlock: an applicable pair of opposite rules with no order either way.
+	// Fixed by ordering.
 	Deadlock Reason = "deadlock"
-	// Blocked: an applicable rule on one side is stopped by a defeater, or by a
-	// rule it does not beat, on the other; nothing applies on that other side
-	// except defeaters. This is how protection of the vested looks.
+	// Blocked: every applicable opposite pair is ordered, and still nothing
+	// wins, typically because a defeater stops the stronger rule. This is how
+	// protection of the vested looks.
 	Blocked Reason = "blocked"
 	// Undetermined: the proof depends on itself.
 	Undetermined Reason = "undetermined"
@@ -160,7 +161,7 @@ func Evaluate(p Program, now int) (*Result, error) {
 		minus:    map[string]bool{},
 		proof:    map[string]*instance{},
 		rulesFor: map[string][]*instance{},
-		stronger: closure(p.Defeats),
+		stronger: direct(p.Defeats),
 	}
 	insts, err := r.ground(p)
 	if err != nil {
@@ -184,25 +185,16 @@ func (r *Result) note(a Atom) {
 	r.atoms[c.String()] = c
 }
 
-func closure(defeats []Defeat) map[string]map[string]bool {
-	next := map[string][]string{}
-	for _, d := range defeats {
-		next[d.Over] = append(next[d.Over], d.Under)
-	}
+// direct reads the defeat relation as given. It is not transitive: a chain
+// r_status > r_status_out > d_a4 > r_strip speaks of three different conflicts
+// and must not order r_status over r_strip.
+func direct(defeats []Defeat) map[string]map[string]bool {
 	out := map[string]map[string]bool{}
-	for from := range next {
-		seen := map[string]bool{}
-		stack := append([]string{}, next[from]...)
-		for len(stack) > 0 {
-			n := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if seen[n] {
-				continue
-			}
-			seen[n] = true
-			stack = append(stack, next[n]...)
+	for _, d := range defeats {
+		if out[d.Over] == nil {
+			out[d.Over] = map[string]bool{}
 		}
-		out[from] = seen
+		out[d.Over][d.Under] = true
 	}
 	return out
 }
@@ -508,29 +500,34 @@ func (r *Result) Query(a Atom) Answer {
 		return Answer{Outcome: Unknown, Reason: Undetermined}
 	}
 	var opposing []string
-	sides := 0
-	for _, k := range []string{key, comp} {
-		concluding := false
+	sides := [2][]*instance{}
+	concluding := false
+	for i, k := range []string{key, comp} {
 		for _, in := range r.rulesFor[k] {
 			if r.applicable(in) {
+				sides[i] = append(sides[i], in)
 				opposing = append(opposing, in.rule.ID)
 				if in.rule.Strength != Defeater {
 					concluding = true
 				}
 			}
 		}
-		if concluding {
-			sides++
-		}
 	}
 	sort.Strings(opposing)
-	switch sides {
-	case 0:
+	if !concluding {
 		return Answer{Outcome: Unknown, Reason: Gap, Opposing: opposing}
-	case 1:
-		return Answer{Outcome: Unknown, Reason: Blocked, Opposing: opposing}
 	}
-	return Answer{Outcome: Unknown, Reason: Deadlock, Opposing: opposing}
+	for _, x := range sides[0] {
+		for _, y := range sides[1] {
+			if x.rule.Strength == Defeater && y.rule.Strength == Defeater {
+				continue
+			}
+			if !r.beats(x.rule.ID, y.rule.ID) && !r.beats(y.rule.ID, x.rule.ID) {
+				return Answer{Outcome: Unknown, Reason: Deadlock, Opposing: opposing}
+			}
+		}
+	}
+	return Answer{Outcome: Unknown, Reason: Blocked, Opposing: opposing}
 }
 
 func (r *Result) trace(key string, visiting map[string]bool) *Trace {

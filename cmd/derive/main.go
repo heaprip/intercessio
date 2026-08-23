@@ -1,8 +1,9 @@
-// Command derive loads a scenario, evaluates it at a period and prints what
-// holds, or the answer and trace for one predicate.
+// Command derive loads a scenario, resolves it at a period and prints what
+// holds, or every conclusion of one predicate with its trace.
 //
 //	go run ./cmd/derive -now 12 internal/scenario/testdata/schema.json internal/scenario/testdata/office-eligibility/scenario.json
-//	go run ./cmd/derive -now 12 -pred eligible ...
+//	go run ./cmd/derive -now 12 -pred eligible -strategy lex-posterior ...
+//	go run ./cmd/derive -now 40 -without A4 ...
 package main
 
 import (
@@ -11,7 +12,7 @@ import (
 	"os"
 	"testing/fstest"
 
-	"github.com/heaprip/intercessio/internal/deduction"
+	"github.com/heaprip/intercessio/internal/entitlement"
 	"github.com/heaprip/intercessio/internal/period"
 	"github.com/heaprip/intercessio/internal/scenario"
 )
@@ -19,10 +20,21 @@ import (
 func main() {
 	now := flag.Int("now", 0, "period to take the slice at")
 	pred := flag.String("pred", "", "print only this predicate, with traces")
+	strategy := flag.String("strategy", "hierarchy", "resolution strategy: hierarchy or lex-posterior")
+	without := flag.String("without", "", "remove this norm from the corpus first")
 	flag.Parse()
 	if flag.NArg() != 2 {
-		fmt.Fprintln(os.Stderr, "usage: derive -now N [-pred name] schema.json scenario.json")
+		fmt.Fprintln(os.Stderr, "usage: derive -now N [-pred name] [-strategy s] [-without norm] schema.json scenario.json")
 		os.Exit(2)
+	}
+	var strat entitlement.Strategy
+	switch *strategy {
+	case "hierarchy":
+		strat = entitlement.Hierarchy{}
+	case "lex-posterior":
+		strat = entitlement.LexPosterior{}
+	default:
+		fail(fmt.Errorf("unknown strategy %q", *strategy))
 	}
 	schema, err := os.ReadFile(flag.Arg(0))
 	if err != nil {
@@ -40,7 +52,11 @@ func main() {
 		fmt.Print(rep)
 		os.Exit(1)
 	}
-	res, err := deduction.Evaluate(s.Program(period.Period(*now)), *now)
+	v := s.Corpus
+	if *without != "" {
+		v = v.Without(*without)
+	}
+	res, err := entitlement.Resolve(strat, v, s.Facts, period.Period(*now))
 	if err != nil {
 		fail(err)
 	}
@@ -50,7 +66,7 @@ func main() {
 		}
 		fmt.Println(a)
 		if *pred != "" {
-			fmt.Print(res.Query(a).Trace)
+			fmt.Print(res.Explain(res.Query(a).Trace))
 			fmt.Println()
 		}
 	}

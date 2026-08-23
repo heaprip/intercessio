@@ -299,6 +299,12 @@ func checkArithmeticRecursion(rules []Rule, add adder) {
 	}
 }
 
+// Conflicting reports whether two rules can conclude opposite literals and so
+// need an order. Two defeaters never conflict: neither concludes anything.
+func Conflicting(a, b Rule) bool {
+	return opposite(a.Head, b.Head) && !(a.Strength == Defeater && b.Strength == Defeater)
+}
+
 func opposite(a, b Literal) bool {
 	if a.Pred != b.Pred || a.Neg == b.Neg || len(a.Args) != len(b.Args) {
 		return false
@@ -433,28 +439,8 @@ func checkGraph(rules []Rule, defeats []Defeat, byID map[string]Rule, roles map[
 		}
 	}
 
-	next := map[string][]string{}
-	for _, d := range defeats {
-		next[d.Over] = append(next[d.Over], d.Under)
-	}
-	stronger := func(a, b string) bool {
-		seen := map[string]bool{a: true}
-		queue := []string{a}
-		for len(queue) > 0 {
-			n := queue[0]
-			queue = queue[1:]
-			for _, m := range next[n] {
-				if m == b {
-					return true
-				}
-				if !seen[m] {
-					seen[m] = true
-					queue = append(queue, m)
-				}
-			}
-		}
-		return false
-	}
+	ranks := direct(defeats)
+	stronger := func(a, b string) bool { return ranks[a][b] }
 	for i := range rules {
 		for j := i + 1; j < len(rules); j++ {
 			a, b := rules[i], rules[j]

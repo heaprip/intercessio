@@ -111,6 +111,29 @@ func TestEvaluate_Synthetic(t *testing.T) {
 	}
 }
 
+// A chain of declared pairs about different conflicts must not order an
+// unrelated pair: superiority is not transitive.
+func TestEvaluate_DefeatIsNotTransitive(t *testing.T) {
+	prog := Program{
+		Rules: []Rule{
+			rule("grant", lit("status", v("P")), lit("granted", v("P"))),
+			rule("grant_out", neg("status", v("P")), lit("granted", v("P"))),
+			defeater("protect", lit("status", v("P")), lit("person", v("P"))),
+			rule("strip", neg("status", v("P")), lit("stripped", v("P"))),
+		},
+		// grant > grant_out > protect > strip; strip > grant comes from elsewhere
+		Defeats: []Defeat{{"grant", "grant_out"}, {"grant_out", "protect"}, {"protect", "strip"}, {"strip", "grant"}},
+		Facts:   []Atom{A("person", "m"), A("granted", "m"), A("stripped", "m")},
+	}
+	res, err := Evaluate(prog, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.Query(A("status", "m")); got.Outcome != Unknown || got.Reason != Blocked {
+		t.Fatalf("got %s/%s, want unknown/blocked: strip beats grant, protect stops strip", got.Outcome, got.Reason)
+	}
+}
+
 func TestEvaluate_TraceNamesBeatenRules(t *testing.T) {
 	prog := Program{
 		Rules: []Rule{

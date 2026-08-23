@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 
 	d "github.com/heaprip/intercessio/internal/deduction"
-	"github.com/heaprip/intercessio/internal/period"
+	"github.com/heaprip/intercessio/internal/entitlement"
 )
 
 // Variant tests change one input of a casus and check that the rules still
@@ -133,15 +133,7 @@ func TestVariants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := loadVariant(t, tt.dir, tt.mutate)
-			for _, c := range tt.cases {
-				res, err := d.Evaluate(s.Program(period.Period(c.now)), c.now)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if got := res.Query(c.query); got.Outcome != c.outcome || got.Reason != c.reason {
-					t.Errorf("period %d, %s: got %s/%s, want %s/%s", c.now, c.query, got.Outcome, got.Reason, c.outcome, c.reason)
-				}
-			}
+			expect(t, s, entitlement.Hierarchy{}, s.Corpus, tt.cases)
 		})
 	}
 }

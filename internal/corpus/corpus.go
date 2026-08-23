@@ -37,6 +37,35 @@ type Version struct {
 	Defeats   []deduction.Defeat
 }
 
+// Without returns a new version with the norm removed. The receiver is not
+// changed: old versions stay alive for impact.
+func (v Version) Without(normID string) Version {
+	out := Version{Documents: v.Documents, Defeats: v.Defeats}
+	for _, n := range v.Norms {
+		if n.ID != normID {
+			out.Norms = append(out.Norms, n)
+		}
+	}
+	return out
+}
+
+// With returns a new version with the norm added.
+func (v Version) With(n Norm) Version {
+	out := Version{Documents: v.Documents, Defeats: v.Defeats}
+	out.Norms = append(append([]Norm{}, v.Norms...), n)
+	return out
+}
+
+// Document looks a document up by id.
+func (v Version) Document(id string) (Document, bool) {
+	for _, d := range v.Documents {
+		if d.ID == id {
+			return d, true
+		}
+	}
+	return Document{}, false
+}
+
 // At returns the rules of the norms in force at now.
 func (v Version) At(now period.Period) []deduction.Rule {
 	var out []deduction.Rule
