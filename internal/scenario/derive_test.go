@@ -77,7 +77,8 @@ var citizenship = []derivation{
 	{31, d.A("status", "marcus", "peregrinus"), d.Proved, ""},
 	{32, d.A("duty", "praetor", "marcus", "decide", "p1", "achieve", 33), d.Unknown, d.Gap},
 	{32, d.A("violated", "marcus", "munus", 32), d.Proved, ""},
-	{32, d.A("duty", "marcus", "res_publica", "penalty", "munus", "achieve", 33), d.Proved, ""},
+	// the penalty follows a decision in force, not the derived violation
+	{32, d.A("duty", "marcus", "res_publica", "penalty", "munus", "achieve", 33), d.Unknown, d.Gap},
 	{32, d.A("competent", "censor", "grant_status"), d.Disproved, ""},
 }
 

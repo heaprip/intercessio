@@ -61,7 +61,7 @@
       {"id": "r_decide", "head": {"p": "duty", "a": ["praetor", "P", "decide", "Pt", "achieve", "D"]}, "body": [
         {"p": "petition", "a": ["Pt", "P", "_", "N0"]}, {"p": "settled", "a": ["Pt"], "neg": true},
         {"p": "term_limit", "a": ["decide", "L"]}, {"p": "plus", "a": ["N0", "L", "D"]}]},
-      {"id": "r_repair", "head": {"p": "duty", "a": ["P", "res_publica", "penalty", "munus", "achieve", "D"]}, "body": [{"p": "violated", "a": ["P", "munus", "N"]}, {"p": "plus", "a": ["N", 1, "D"]}]},
+      {"id": "r_repair", "head": {"p": "duty", "a": ["P", "res_publica", "penalty", "munus", "achieve", "D"]}, "body": [{"p": "decision", "a": ["Dc", "C", "guilty", "_", "_"]}, {"p": "petition", "a": ["C", "P", "munus", "_"]}, {"p": "in_force", "a": ["Dc", "F"]}, {"p": "plus", "a": ["F", 1, "D"]}]},
       {"id": "r_offense", "head": {"p": "offense", "a": ["P", "K"]}, "body": [{"p": "decision", "a": ["D", "C", "guilty", "_", "_"]}, {"p": "petition", "a": ["C", "P", "K", "_"]}, {"p": "in_force", "a": ["D", "_"]}]}
     ]}
   ],

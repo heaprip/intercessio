@@ -139,6 +139,25 @@ func TestAdvance_CitizenshipLived(t *testing.T) {
 	}
 }
 
+// The reparation deadline counts from the decision in force, so the penalty
+// can itself be violated; the chain ends in a record of offense, not a duty.
+func TestAdvance_PenaltyIsViolated(t *testing.T) {
+	// periods 30..34: gaius convicted in 30, in force in 31, penalty due by 32,
+	// violated and convicted in 33, in force in 34
+	s := play(t, start(t, nil), base, 5)
+	if !has(s.Journal, journal.ViolationDetected, 33, "violated(gaius, penalty, 33)") {
+		dump(t, s.Journal)
+		t.Fatal("penalty was never violated")
+	}
+	if got := query(t, s, 34, deduction.A("offense", "gaius", "penalty")); got.Outcome != deduction.Proved {
+		dump(t, s.Journal)
+		t.Fatalf("offense for the penalty: got %s", got.Outcome)
+	}
+	if got := query(t, s, 34, deduction.A("duty", "gaius", "res_publica", "penalty", "penalty", "achieve", 35)); got.Outcome == deduction.Proved {
+		t.Fatal("the ladder must end: no penalty for the penalty")
+	}
+}
+
 func TestAdvance_TribuneStopsGrant(t *testing.T) {
 	cfg := base
 	cfg.Actors.VetoGrantsTo = map[string]bool{"marcus": true}
