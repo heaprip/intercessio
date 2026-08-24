@@ -88,9 +88,11 @@ func dump(t *testing.T, j journal.Journal) {
 
 var base = Config{
 	Strategy: entitlement.Hierarchy{},
-	Actors: actors.Stub{Attempts: []actors.Attempt{
-		{Period: 30, Actor: "appius", Office: "censor", Kind: "grant_status"},
-	}},
+	Actors:   actors.Stub{Script: script},
+}
+
+var script = []actors.Attempt{
+	{Period: 30, Actor: "appius", Office: "censor", Kind: "grant_status"},
 }
 
 // The demonstration of playable-case: the citizenship casus is lived, not
@@ -160,7 +162,7 @@ func TestAdvance_PenaltyIsViolated(t *testing.T) {
 
 func TestAdvance_TribuneStopsGrant(t *testing.T) {
 	cfg := base
-	cfg.Actors.VetoGrantsTo = map[string]bool{"marcus": true}
+	cfg.Actors = actors.Stub{Script: script, VetoGrantsTo: map[string]bool{"marcus": true}}
 	s := play(t, start(t, nil), cfg, 3)
 	if !has(s.Journal, journal.Intercessio, 30, "actor=titus") {
 		dump(t, s.Journal)

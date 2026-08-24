@@ -1,17 +1,24 @@
-// Package actors decides what participants try to do. Prototype: deterministic
-// stubs only; the model participant is the other side of the seam.
+// Package actors decides what participants try to do: a deterministic stub or
+// a model, on the two sides of one seam.
 package actors
 
 import (
 	"github.com/heaprip/intercessio/internal/cases"
 	"github.com/heaprip/intercessio/internal/competence"
 	"github.com/heaprip/intercessio/internal/deduction"
+	"github.com/heaprip/intercessio/internal/journal"
+	"github.com/heaprip/intercessio/internal/period"
 )
 
-// Request is a petition a person wants to file.
+// Request is a person's answer about a petition they could file.
 type Request struct {
-	Person string
-	Status string
+	Person   string
+	Status   string
+	File     bool
+	Decider  journal.Decider
+	Model    string
+	Call     string
+	Unserved string
 }
 
 // Attempt is a scripted action, used to show that competence is checked.
@@ -26,12 +33,12 @@ type Attempt struct {
 type Stub struct {
 	// VetoGrantsTo lists persons whose grants the tribune stops.
 	VetoGrantsTo map[string]bool
-	Attempts     []Attempt
+	Script       []Attempt
 }
 
-// Petitions: a person petitions for a status they are entitled to and do not
-// hold, unless a case about it already exists.
-func (Stub) Petitions(q competence.Query, people, statuses []string, exists func(person, matter string) bool) []Request {
+// Candidates are the petitions the law makes worth filing: a status the person
+// is entitled to and does not hold, with no case about it yet.
+func Candidates(q competence.Query, people, statuses []string, exists func(person, matter string) bool) []Request {
 	var out []Request
 	for _, p := range people {
 		for _, s := range statuses {
@@ -46,32 +53,56 @@ func (Stub) Petitions(q competence.Query, people, statuses []string, exists func
 	return out
 }
 
+// Petitions: the stub files every candidate.
+func (Stub) Petitions(q competence.Query, people, statuses []string, exists func(person, matter string) bool) []Request {
+	out := Candidates(q, people, statuses, exists)
+	for i := range out {
+		out[i].File, out[i].Decider = true, journal.ByStub
+	}
+	return out
+}
+
+// Normative returns the question a case asks the law, and the outcomes that
+// follow from proved, disproved and unknown.
+func Normative(c cases.Case) (deduction.Atom, [3]string) {
+	if c.Kind == cases.Charge {
+		return deduction.A("violated", c.Person, c.Matter, int(c.Opened)), [3]string{"guilty", "acquit", "non-liquet"}
+	}
+	return deduction.A("entitled", c.Person, c.Matter), [3]string{"grant", "refuse", "non-liquet"}
+}
+
 // Propose decides by the normative result: proved grants or convicts,
 // disproved refuses or acquits, anything else is non liquet.
-func (Stub) Propose(c cases.Case, q competence.Query) (string, string) {
-	var ans deduction.Answer
-	yes, no := "grant", "refuse"
-	switch c.Kind {
-	case cases.Petition:
-		ans = q(deduction.A("entitled", c.Person, c.Matter))
-	case cases.Charge:
-		ans = q(deduction.A("violated", c.Person, c.Matter, int(c.Opened)))
-		yes, no = "guilty", "acquit"
-	}
-	rule := ""
+func (Stub) Propose(c cases.Case, q competence.Query) cases.Proposal {
+	atom, outcomes := Normative(c)
+	ans := q(atom)
+	p := cases.Proposal{Decider: journal.ByStub}
 	if ans.Trace != nil {
-		rule = ans.Trace.Rule
+		p.Rule = ans.Trace.Rule
 	}
 	switch ans.Outcome {
 	case deduction.Proved:
-		return yes, rule
+		p.Outcome = outcomes[0]
 	case deduction.Disproved:
-		return no, rule
+		p.Outcome = outcomes[1]
+	default:
+		p.Outcome, p.Rule = outcomes[2], string(ans.Reason)
 	}
-	return "non-liquet", string(ans.Reason)
+	return p
 }
 
 // Veto says whether the tribune stops this decision.
 func (s Stub) Veto(c cases.Case) bool {
 	return c.Kind == cases.Petition && c.Outcome == "grant" && s.VetoGrantsTo[c.Person]
+}
+
+// Attempts returns the scripted attempts of a period.
+func (s Stub) Attempts(now period.Period) []Attempt {
+	var out []Attempt
+	for _, a := range s.Script {
+		if period.Period(a.Period) == now {
+			out = append(out, a)
+		}
+	}
+	return out
 }

@@ -26,7 +26,9 @@ const (
 	Execution         Kind = "execution"
 	Expired           Kind = "expired"
 	Vacant            Kind = "vacant"
-	PeriodSummary     Kind = "period-summary"
+	// Unserved: a model call did not happen and the declared fallback was taken.
+	Unserved      Kind = "unserved"
+	PeriodSummary Kind = "period-summary"
 )
 
 // Decider says who made the step: a rule, a stub or a model.
@@ -57,6 +59,8 @@ type Entry struct {
 	Outcome string
 	Basis   Basis
 	Decider Decider
+	Model   string // model name when a model decided
+	Call    string // hash of the call record; prompts never enter the journal
 }
 
 func (e Entry) String() string {
@@ -73,6 +77,10 @@ func (e Entry) String() string {
 	add("outcome", e.Outcome)
 	add("rule", e.Basis.Rule)
 	add("by", string(e.Decider))
+	add("model", e.Model)
+	if len(e.Call) > 8 {
+		add("call", e.Call[:8])
+	}
 	return fmt.Sprintf("%3d #%-3d %-19s %s", e.Period, e.Seq, e.Kind, strings.Join(parts, " "))
 }
 

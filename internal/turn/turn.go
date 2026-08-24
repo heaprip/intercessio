@@ -28,10 +28,18 @@ type State struct {
 	Seed    int64
 }
 
+// Participants is the actors seam as the turn consumes it: a stub or a model.
+type Participants interface {
+	Petitions(q competence.Query, people, statuses []string, exists func(person, matter string) bool) []actors.Request
+	Propose(c cases.Case, q competence.Query) cases.Proposal
+	Veto(c cases.Case) bool
+	Attempts(now period.Period) []actors.Attempt
+}
+
 // Config holds the explicit inputs that are not state.
 type Config struct {
 	Strategy entitlement.Strategy
-	Actors   actors.Stub
+	Actors   Participants
 	Term     int // periods a case may stay open
 }
 
@@ -84,11 +92,21 @@ func Advance(s State, cfg Config) (Transition, error) {
 		return false
 	}
 	for i, req := range cfg.Actors.Petitions(p.res.Query, people, statuses, exists) {
+		if req.Unserved != "" {
+			e := p.entry(journal.Unserved, req.Person, "", "petition "+req.Status, req.Unserved, "")
+			e.Model, e.Call = req.Model, req.Call
+			p.add(nil, []journal.Entry{e})
+			continue
+		}
+		if !req.File {
+			continue
+		}
 		office := p.firstCompetent(offices, "grant_status")
 		if office == "" {
 			continue
 		}
 		c, f, e := cases.File(p.context(), cases.Petition, fmt.Sprintf("pt%d_%d", p.now, i+1), req.Person, req.Status, office, req.Person, cfg.Term)
+		e.Decider, e.Model, e.Call = req.Decider, req.Model, req.Call
 		p.cases = append(p.cases, c)
 		p.add([]facts.Fact{f}, []journal.Entry{e})
 	}
@@ -143,10 +161,7 @@ func Advance(s State, cfg Config) (Transition, error) {
 	}
 
 	// scripted attempts
-	for _, a := range cfg.Actors.Attempts {
-		if period.Period(a.Period) != p.now {
-			continue
-		}
+	for _, a := range cfg.Actors.Attempts(p.now) {
 		if v, rule := competence.Check(p.res.Query, a.Office, a.Kind); v != competence.Allowed {
 			p.add(nil, []journal.Entry{p.entry(journal.UltraVires, a.Actor, a.Office, a.Kind, string(v), rule)})
 		}

@@ -104,9 +104,19 @@ func File(x Context, kind Kind, id, person, matter, office, filer string, term i
 	return c, fact(id, pred, x.Now, filer, id, person, matter, x.Now), x.entry(ek, c, filer, "", person+" "+matter, "", "", journal.ByStub)
 }
 
-// Propose is the participant's proposal for the outcome, with the rule it
-// rests on. It comes from actors: a stub or a model.
-type Propose func(c Case, q competence.Query) (outcome, rule string)
+// Proposal is a participant's proposed outcome and who produced it.
+type Proposal struct {
+	Outcome  string
+	Rule     string // rule the normative result rested on
+	Decider  journal.Decider
+	Model    string
+	Call     string
+	Unserved string // set when the model call was not served; the case waits
+}
+
+// Propose is the participant's proposal for the outcome. It comes from actors:
+// a stub or a model.
+type Propose func(c Case, q competence.Query) Proposal
 
 // Decide checks the office's competence before anything else, then records the
 // proposed outcome as a decision.
@@ -115,10 +125,21 @@ func Decide(x Context, c Case, actor string, propose Propose) (Case, []facts.Fac
 	if verdict != competence.Allowed {
 		return c, nil, []journal.Entry{x.entry(journal.UltraVires, c, actor, c.Office, c.ActionKind(), string(verdict), rule, journal.ByRule)}
 	}
-	outcome, basis := propose(c, x.Query)
+	p := propose(c, x.Query)
+	stamp := func(e journal.Entry) []journal.Entry {
+		e.Decider, e.Model, e.Call = p.Decider, p.Model, p.Call
+		return []journal.Entry{e}
+	}
+	if p.Unserved != "" {
+		// declared fallback of an official: the case stays in the queue, the term runs
+		e := x.entry(journal.Unserved, c, actor, c.Office, c.Person+" "+c.Matter, p.Unserved, p.Rule, journal.ByRule)
+		e.Model, e.Call = p.Model, p.Call
+		return c, nil, []journal.Entry{e}
+	}
+	outcome, basis := p.Outcome, p.Rule
 	if outcome == "non-liquet" {
 		c.Status = NonLiquet
-		return c, nil, []journal.Entry{x.entry(journal.NonLiquet, c, actor, c.Office, c.Person+" "+c.Matter, outcome, basis, journal.ByStub)}
+		return c, nil, stamp(x.entry(journal.NonLiquet, c, actor, c.Office, c.Person+" "+c.Matter, outcome, basis, journal.ByStub))
 	}
 	c.Decision = fmt.Sprintf("d_%s", c.ID)
 	c.Outcome = outcome
@@ -128,7 +149,7 @@ func Decide(x Context, c Case, actor string, propose Propose) (Case, []facts.Fac
 		c.Status = Refused
 	}
 	f := fact(c.Decision, "decision", x.Now, actor, c.Decision, c.ID, outcome, c.Office, x.Now)
-	return c, []facts.Fact{f}, []journal.Entry{x.entry(journal.Decision, c, actor, c.Office, c.Person+" "+c.Matter, outcome, basis, journal.ByStub)}
+	return c, []facts.Fact{f}, stamp(x.entry(journal.Decision, c, actor, c.Office, c.Person+" "+c.Matter, outcome, basis, journal.ByStub))
 }
 
 // Veto stops a decision before it enters into force, if the office may.
