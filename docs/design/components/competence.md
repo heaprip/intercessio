@@ -54,9 +54,7 @@ seam: false
 
 ## Открыто
 
-**Кто владеет должностью.** Объявление должности лежит в данных
-[[docs/design/components/scenario|сценария]], компетенции и сроки — нормы
-конституции в [[docs/design/components/corpus|корпусе]], занятие — факт в
-[[docs/design/components/facts|facts]], а в таблице компонентов должности
-записаны за этим компонентом. См. раздел «Владение» в
-[[docs/design/README|спине архитектуры]].
+Решено: объявление должности — данные нормы в
+[[docs/design/components/corpus|корпусе]], занятие — факт в
+[[docs/design/components/facts|facts]]. Этот компонент владеет только проверкой
+«вправе ли». Прототип — `internal/competence`, `Check(query, office, kind)`.
