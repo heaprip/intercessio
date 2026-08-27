@@ -66,5 +66,12 @@
   ],
   "constants": ["maintain", "achieve", "grant", "guilty", "citizenship", "all_free", "a4", "d2", "open", "res_publica", "tenure_confirmed"],
   "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute", "inspect", "judge"],
-  "duty_kinds": ["munus", "resign", "decide", "penalty"]
+  "duty_kinds": ["munus", "resign", "decide", "penalty"],
+  "acts": [
+    {"predicate": "decision", "kinds": ["grant_status", "judge"], "stopped_by": ["intercessio"]},
+    {"predicate": "adrogatio", "kinds": ["adrogatio"]},
+    {"predicate": "vetoes", "kinds": ["intercessio"]},
+    {"predicate": "marks", "kinds": ["nota"]},
+    {"predicate": "lifts", "kinds": ["lift"]}
+  ]
 }

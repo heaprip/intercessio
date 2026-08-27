@@ -53,6 +53,13 @@ type rawSchema struct {
 	Constants   []string `json:"constants"`
 	ActionKinds []string `json:"action_kinds"`
 	DutyKinds   []string `json:"duty_kinds"`
+	// Acts say which fact predicates record acts of offices, by which action
+	// kinds, and which action kinds stop them.
+	Acts []struct {
+		Predicate string   `json:"predicate"`
+		Kinds     []string `json:"kinds"`
+		StoppedBy []string `json:"stopped_by"`
+	} `json:"acts"`
 }
 
 type rawLit struct {
@@ -385,6 +392,21 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 	}
 	for _, d := range raw.Defeats {
 		s.Corpus.Defeats = append(s.Corpus.Defeats, deduction.Defeat{Over: d.Over, Under: d.Under})
+	}
+	kinds := map[string]bool{}
+	for _, k := range sch.ActionKinds {
+		kinds[k] = true
+	}
+	for _, a := range sch.Acts {
+		if role, ok := l.roles[a.Predicate]; !ok || role != deduction.RoleFact {
+			l.add("unknown-reference", deduction.Error, a.Predicate, "act predicate %s is not a declared fact", a.Predicate)
+		}
+		for _, k := range append(append([]string{}, a.Kinds...), a.StoppedBy...) {
+			if !kinds[k] {
+				l.add("unknown-reference", deduction.Error, a.Predicate, "action kind %s is not declared", k)
+			}
+		}
+		s.Corpus.Acts = append(s.Corpus.Acts, corpus.Act{Predicate: a.Predicate, Kinds: a.Kinds, StoppedBy: a.StoppedBy})
 	}
 
 	usedConst := map[string]bool{}

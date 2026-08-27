@@ -55,7 +55,7 @@ func fill(v corpus.Version, now period.Period, better func(a, b ruleInNorm) bool
 	}
 	var rules []ruleInNorm
 	for _, n := range v.Norms {
-		if n.InForce > now {
+		if !n.ActiveAt(now) {
 			continue
 		}
 		doc, _ := v.Document(n.Document)

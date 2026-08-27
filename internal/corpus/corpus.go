@@ -26,11 +26,31 @@ type Norm struct {
 	Document string
 	Enacted  period.Period
 	InForce  period.Period
-	Kind     Kind
-	Rules    []deduction.Rule
+	// Until is the first period the text no longer applies to; zero means open.
+	// An amendment closes the old text at the in-force period of the new one.
+	Until period.Period
+	Kind  Kind
+	Rules []deduction.Rule
 	// Declarations are the data the norm states: bundles of statuses,
 	// competences and requirements of offices, capacities.
 	Declarations []deduction.Atom
+}
+
+// ActiveAt reports whether the text of the norm applies to period now.
+func (n Norm) ActiveAt(now period.Period) bool {
+	return n.InForce <= now && (n.Until == 0 || now < n.Until)
+}
+
+// Retroactive reports whether the norm applies to periods before its enactment.
+func (n Norm) Retroactive() bool { return n.InForce < n.Enacted }
+
+// Act declares that a stored fact predicate records an act of an office: which
+// action kinds produce it and which action kinds can stop it before it takes
+// effect. These are the declared edges of the power graph.
+type Act struct {
+	Predicate string
+	Kinds     []string
+	StoppedBy []string
 }
 
 // Version is one immutable state of the corpus.
@@ -39,26 +59,44 @@ type Version struct {
 	Documents []Document
 	Norms     []Norm
 	Defeats   []deduction.Defeat
+	Acts      []Act
 }
 
 // DeclarationsAt returns the declarations of the norms in force at now.
 func (v Version) DeclarationsAt(now period.Period) []deduction.Atom {
 	var out []deduction.Atom
 	for _, n := range v.Norms {
-		if n.InForce <= now {
+		if n.ActiveAt(now) {
 			out = append(out, n.Declarations...)
 		}
 	}
 	return out
 }
 
+func (v Version) next() Version {
+	return Version{Number: v.Number + 1, Documents: v.Documents, Defeats: v.Defeats, Acts: v.Acts}
+}
+
 // Without returns a new version with the norm removed. The receiver is not
-// changed: old versions stay alive for impact.
+// changed: old versions stay alive for impact. A repealed norm takes with it the
+// declared defeat pairs that name its rules: a pair orders two rules, and with
+// one of them gone it orders nothing.
 func (v Version) Without(normID string) Version {
-	out := Version{Number: v.Number + 1, Documents: v.Documents, Defeats: v.Defeats}
+	out := v.next()
+	gone := map[string]bool{}
 	for _, n := range v.Norms {
 		if n.ID != normID {
 			out.Norms = append(out.Norms, n)
+			continue
+		}
+		for _, r := range n.Rules {
+			gone[r.ID] = true
+		}
+	}
+	out.Defeats = nil
+	for _, d := range v.Defeats {
+		if !gone[d.Over] && !gone[d.Under] {
+			out.Defeats = append(out.Defeats, d)
 		}
 	}
 	return out
@@ -66,9 +104,34 @@ func (v Version) Without(normID string) Version {
 
 // With returns a new version with the norm added.
 func (v Version) With(n Norm) Version {
-	out := Version{Number: v.Number + 1, Documents: v.Documents, Defeats: v.Defeats}
+	out := v.next()
 	out.Norms = append(append([]Norm{}, v.Norms...), n)
 	return out
+}
+
+// Amend returns a new version where the open text of the norm with the same id
+// stops applying from n.InForce and n applies from then on. Periods before stay
+// under the old text, as tempus regit actum reads them.
+func (v Version) Amend(n Norm) Version {
+	out := v.next()
+	for _, old := range v.Norms {
+		if old.ID == n.ID && old.Until == 0 {
+			old.Until = n.InForce
+		}
+		out.Norms = append(out.Norms, old)
+	}
+	out.Norms = append(out.Norms, n)
+	return out
+}
+
+// Norm returns the open text of a norm.
+func (v Version) Norm(id string) (Norm, bool) {
+	for _, n := range v.Norms {
+		if n.ID == id && n.Until == 0 {
+			return n, true
+		}
+	}
+	return Norm{}, false
 }
 
 // Document looks a document up by id.
@@ -85,7 +148,7 @@ func (v Version) Document(id string) (Document, bool) {
 func (v Version) At(now period.Period) []deduction.Rule {
 	var out []deduction.Rule
 	for _, n := range v.Norms {
-		if n.InForce <= now {
+		if n.ActiveAt(now) {
 			out = append(out, n.Rules...)
 		}
 	}
