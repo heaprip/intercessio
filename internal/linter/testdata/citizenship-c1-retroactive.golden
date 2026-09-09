@@ -1,0 +1,26 @@
+dead-conclusion            linter  holds_right            holds_right is concluded by r_rights and consumed by no rule
+empty-right                linter  ius_commercii          right ius_commercii enters no condition
+empty-right                linter  ius_conubii            right ius_conubii enters no condition
+empty-right                linter  ius_honorum            right ius_honorum enters no condition
+empty-right                linter  ius_suffragii          right ius_suffragii enters no condition
+indeterminacy              linter  r_born, r_revoke       r_born and r_revoke conclude opposite status with no declared order
+indeterminacy              linter  r_born, r_status_out   r_born and r_status_out conclude opposite status with no declared order
+indeterminacy              linter  r_born, r_strip        r_born and r_strip conclude opposite status with no declared order
+indeterminacy              linter  r_edict, r_revoke      r_edict and r_revoke conclude opposite status with no declared order
+indeterminacy              linter  r_edict, r_status_out  r_edict and r_status_out conclude opposite status with no declared order
+indeterminacy              linter  r_edict, r_strip       r_edict and r_strip conclude opposite status with no declared order
+indeterminacy              linter  r_registered, r_revoke r_registered and r_revoke conclude opposite status with no declared order
+indeterminacy              linter  r_registered, r_strip  r_registered and r_strip conclude opposite status with no declared order
+indeterminacy              linter  r_revoke, r_status     r_revoke and r_status conclude opposite status with no declared order
+indeterminacy              linter  r_status, r_strip      r_status and r_strip conclude opposite status with no declared order
+retroactivity              recount C1                     enacted in 35, applies from 28; recount over 28..34 changes 4 conclusions [marcus]
+review-dead-end            linter  censor                 no office in effect can stop censor (establish_fact)
+review-dead-end            linter  praetor                no office in effect can stop praetor (grant_status); declared: tribunus, vacant
+review-dead-end            linter  tribunus               no office in effect can stop tribunus (intercessio)
+
+impact v0 -> v1, periods 28..35, hierarchy: 4 changes, 1 people
+marcus
+  30 - entitled(marcus, civis)
+  30 - may_grant(praetor, marcus, civis)
+  31 - entitled(marcus, civis)
+  31 - may_grant(praetor, marcus, civis)
