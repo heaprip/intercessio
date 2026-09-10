@@ -84,7 +84,9 @@ type Report struct {
 `go run ./cmd/scenario-check schema.json scenario.json`. Срез на период для
 вычислителя — `Scenario.Program(now)`: в прототипе он берёт только объявленные
 пары вытеснения, потому что `entitlement` ещё нет. Веха —
-[[docs/design/stages/scenario-loader|scenario-loader]].
+[[docs/design/stages/scenario-loader|scenario-loader]]. К вехе `corpus-checks`
+схема получила раздел `acts`: загрузчик проверяет, что предикат акта — факт, а
+виды действий объявлены, и кладёт акты в версию корпуса.
 
 ## Открыто
 

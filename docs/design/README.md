@@ -190,6 +190,7 @@ flowchart TD
   power_graph --> corpus
   power_graph --> facts
   power_graph --> competence
+  power_graph --> entitlement
   linter --> corpus
   linter --> deduction
   linter --> impact
