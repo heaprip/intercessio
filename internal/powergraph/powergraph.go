@@ -31,6 +31,12 @@ const (
 	Admits EdgeKind = "admits"
 )
 
+// Via values of restraint edges that are not act predicates.
+const (
+	ReviewKind  = "review"
+	Concurrence = "concurrence"
+)
+
 // Edge of the graph.
 type Edge struct {
 	Kind     EdgeKind
@@ -100,6 +106,28 @@ func Build(s entitlement.Strategy, v corpus.Version, fs []facts.Fact, now period
 				add(Edge{Kind: Restrains, From: from, To: to, Via: act.Predicate, Active: len(g.Office(from).Holders) > 0})
 			}
 		}
+	}
+
+	// review: a declared reviewer with the competence to review checks every act
+	// of the reviewed office anew
+	for _, a := range stored {
+		if a.Pred != "reviews" || len(a.Args) != 2 {
+			continue
+		}
+		from, to := a.Args[0].Const, a.Args[1].Const
+		if from == to || !contains(g.Office(from).Competences, ReviewKind) {
+			continue
+		}
+		add(Edge{Kind: Restrains, From: from, To: to, Via: ReviewKind, Active: len(g.Office(from).Holders) > 0})
+	}
+	// concurrence: an act needs the consent of several holders, so a colleague
+	// restrains the office from within; it acts only with a second holder there
+	for _, a := range stored {
+		if a.Pred != "quorum" || len(a.Args) != 2 || a.Args[1].Num < 2 {
+			continue
+		}
+		o := a.Args[0].Const
+		add(Edge{Kind: Restrains, From: o, To: o, Via: Concurrence, Active: len(g.Office(o).Holders) >= 2})
 	}
 
 	var guarded []string

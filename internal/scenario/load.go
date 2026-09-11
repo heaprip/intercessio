@@ -108,6 +108,10 @@ type rawScenario struct {
 		IterationBarred   bool     `json:"iteration_barred"`
 		ConsecutiveBarred bool     `json:"consecutive_barred"`
 		Capacity          *int     `json:"capacity"`
+		// Reviews lists the offices whose acts this office reviews.
+		Reviews []string `json:"reviews"`
+		// Quorum is how many holders must concur for an act of the office.
+		Quorum *int `json:"quorum"`
 	} `json:"offices"`
 	People []struct {
 		ID     string `json:"id"`
@@ -297,6 +301,12 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 		}
 		if o.Capacity != nil {
 			gen("capacity", o.ID, *o.Capacity)
+		}
+		for _, x := range o.Reviews {
+			gen("reviews", o.ID, x)
+		}
+		if o.Quorum != nil {
+			gen("quorum", o.ID, *o.Quorum)
 		}
 	}
 	for _, p := range raw.People {

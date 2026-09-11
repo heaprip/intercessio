@@ -310,3 +310,84 @@ func TestLint_DiagnosticsSpeakTheCatalog(t *testing.T) {
 	mustFind(t, out, "empty-right", "ius_conubii")
 	mustNotFind(t, out, "retroactivity", "")
 }
+
+func addOffice(o map[string]any, holders ...string) func(world) {
+	return func(w world) {
+		w["offices"] = append(w["offices"].([]any), o)
+		for _, h := range holders {
+			w["people"] = append(w["people"].([]any), map[string]any{"id": h, "status": "civis"})
+			w["facts"] = append(w["facts"].([]any), map[string]any{
+				"id": "occ_" + h, "p": "occupies", "a": []any{h, o["id"], 30, 40}, "by": "scenario", "period": 30,
+			})
+		}
+	}
+}
+
+func setOffice(id, key string, value any) func(world) {
+	return func(w world) {
+		for _, o := range w["offices"].([]any) {
+			if m := o.(map[string]any); m["id"] == id {
+				m[key] = value
+			}
+		}
+	}
+}
+
+func both(fs ...func(world)) func(world) {
+	return func(w world) {
+		for _, f := range fs {
+			f(w)
+		}
+	}
+}
+
+// A held reviewer makes the reviewed office reviewable; a reviewer without
+// holders does not.
+func TestLint_ReviewIsARestraint(t *testing.T) {
+	consul := map[string]any{"id": "consul", "competences": []any{"review"}, "term": 1, "reviews": []any{"praetor"}}
+	s, rep := loadCasus(t, "citizenship", addOffice(consul, "quintus"))
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustNotFind(t, out, "review-dead-end", "praetor")
+	mustFind(t, out, "review-dead-end", "consul")
+	mustNotFind(t, out, "review-cycle", "")
+
+	s, rep = loadCasus(t, "citizenship", addOffice(consul))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustFind(t, out, "review-dead-end", "praetor")
+}
+
+// Offices reviewing each other make an appeal that never ends.
+func TestLint_ReviewCycle(t *testing.T) {
+	consul := map[string]any{"id": "consul", "competences": []any{"review"}, "term": 1, "reviews": []any{"praetor"}}
+	s, rep := loadCasus(t, "citizenship", both(
+		addOffice(consul, "quintus"),
+		setOffice("praetor", "competences", []any{"grant_status", "review"}),
+		setOffice("praetor", "reviews", []any{"consul"}),
+	))
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	f := mustFind(t, out, "review-cycle", "consul")
+	if !strings.Contains(f.Message, "consul -> praetor -> consul") {
+		t.Fatalf("cycle path: %s", f)
+	}
+}
+
+// Two censors who must concur restrain each other: adoption is no longer an act
+// nobody can stop. With a single censor the quorum restrains nothing.
+func TestLint_ConcurrenceRestrainsTheCensor(t *testing.T) {
+	twoCensors := func(w world) {
+		setOffice("censor", "quorum", 2)(w)
+		w["facts"] = append(w["facts"].([]any),
+			map[string]any{"id": "occ_c1", "p": "occupies", "a": []any{"fonteius", "censor", 13, 14}, "by": "scenario", "period": 13},
+			map[string]any{"id": "occ_c2", "p": "occupies", "a": []any{"clodius", "censor", 13, 14}, "by": "scenario", "period": 13},
+		)
+	}
+	s, rep := loadCasus(t, "office-eligibility", twoCensors)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustNotFind(t, out, "review-dead-end", "censor")
+	mustNotFind(t, out, "circumventable-condition", "")
+	mustFind(t, out, "closed-eligibility", "censor")
+
+	s, rep = loadCasus(t, "office-eligibility", setOffice("censor", "quorum", 2))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustFind(t, out, "circumventable-condition", "eligible")
+}

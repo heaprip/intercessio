@@ -162,6 +162,7 @@ func Lint(in Input) (*Report, error) {
 	}
 	rep.Graph = g
 	rep.reviewDeadEnd()
+	rep.reviewCycle()
 	rep.competenceGap(in)
 	rep.circumventable()
 	rep.closedEligibility()
@@ -288,6 +289,49 @@ func (r *Report) reviewDeadEnd() {
 			msg += "; declared: " + strings.Join(vacant, ", ") + ", vacant"
 		}
 		r.Findings = append(r.Findings, Finding{Failure: "review-dead-end", Code: "review-dead-end", Channel: Linter, Place: o.ID, Message: msg, People: o.Holders})
+	}
+}
+
+// reviewCycle: review edges that come back to where they started, so an appeal
+// never ends. Reported once per cycle, at its smallest office.
+func (r *Report) reviewCycle() {
+	next := map[string][]string{}
+	for _, e := range r.Graph.Find(powergraph.Restrains, "", "") {
+		if e.Via == powergraph.ReviewKind {
+			next[e.From] = append(next[e.From], e.To)
+		}
+	}
+	reported := map[string]bool{}
+	for _, o := range r.Graph.Offices {
+		var walk func(at string, path []string) []string
+		seen := map[string]bool{}
+		walk = func(at string, path []string) []string {
+			for _, n := range next[at] {
+				if n == o.ID {
+					return append(path, n)
+				}
+				if !seen[n] {
+					seen[n] = true
+					if p := walk(n, append(path, n)); p != nil {
+						return p
+					}
+				}
+			}
+			return nil
+		}
+		cycle := walk(o.ID, []string{o.ID})
+		if cycle == nil {
+			continue
+		}
+		members := append([]string{}, cycle[:len(cycle)-1]...)
+		sort.Strings(members)
+		key := strings.Join(members, ",")
+		if reported[key] {
+			continue
+		}
+		reported[key] = true
+		r.Findings = append(r.Findings, Finding{Failure: "review-cycle", Code: "review-cycle", Channel: Linter, Place: members[0],
+			Message: "review comes back to where it started: " + strings.Join(cycle, " -> ")})
 	}
 }
 
