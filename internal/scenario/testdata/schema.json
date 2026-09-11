@@ -68,7 +68,8 @@
   "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute", "inspect", "judge"],
   "duty_kinds": ["munus", "resign", "decide", "penalty"],
   "acts": [
-    {"predicate": "decision", "kinds": ["grant_status", "judge"], "stopped_by": ["intercessio"]},
+    {"predicate": "decision", "kinds": ["grant_status", "judge"], "stopped_by": ["intercessio"],
+     "outcome_arg": 2, "outcomes": {"grant": "grant_status", "refuse": "grant_status", "guilty": "judge", "acquit": "judge"}},
     {"predicate": "adrogatio", "kinds": ["adrogatio"]},
     {"predicate": "vetoes", "kinds": ["intercessio"]},
     {"predicate": "marks", "kinds": ["nota"]},

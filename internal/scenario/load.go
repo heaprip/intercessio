@@ -56,9 +56,11 @@ type rawSchema struct {
 	// Acts say which fact predicates record acts of offices, by which action
 	// kinds, and which action kinds stop them.
 	Acts []struct {
-		Predicate string   `json:"predicate"`
-		Kinds     []string `json:"kinds"`
-		StoppedBy []string `json:"stopped_by"`
+		Predicate  string            `json:"predicate"`
+		Kinds      []string          `json:"kinds"`
+		StoppedBy  []string          `json:"stopped_by"`
+		OutcomeArg int               `json:"outcome_arg"`
+		Outcomes   map[string]string `json:"outcomes"`
 	} `json:"acts"`
 }
 
@@ -406,7 +408,19 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 				l.add("unknown-reference", deduction.Error, a.Predicate, "action kind %s is not declared", k)
 			}
 		}
-		s.Corpus.Acts = append(s.Corpus.Acts, corpus.Act{Predicate: a.Predicate, Kinds: a.Kinds, StoppedBy: a.StoppedBy})
+		for outcome, k := range a.Outcomes {
+			found := false
+			for _, x := range a.Kinds {
+				found = found || x == k
+			}
+			if !found {
+				l.add("unknown-reference", deduction.Error, a.Predicate, "outcome %s names kind %s the act does not have", outcome, k)
+			}
+		}
+		if len(a.Outcomes) > 0 && (a.OutcomeArg < 0 || a.OutcomeArg >= l.arity[a.Predicate]) {
+			l.add("unknown-reference", deduction.Error, a.Predicate, "outcome argument %d is outside %s/%d", a.OutcomeArg, a.Predicate, l.arity[a.Predicate])
+		}
+		s.Corpus.Acts = append(s.Corpus.Acts, corpus.Act{Predicate: a.Predicate, Kinds: a.Kinds, StoppedBy: a.StoppedBy, OutcomeArg: a.OutcomeArg, Outcomes: a.Outcomes})
 	}
 
 	usedConst := map[string]bool{}

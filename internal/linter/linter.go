@@ -293,12 +293,13 @@ func (r *Report) reviewDeadEnd() {
 
 // competenceGap: an action the corpus requires and no office may perform.
 // Required means an action kind named in a competent/2 condition, or an act
-// predicate some condition rests on — the act needs any one of its kinds, since
-// the linter cannot tell which kind a given condition means.
+// some condition rests on. When the condition names the outcome of the act and
+// the schema says which kind produces it, that kind is required; otherwise any
+// one of the act's kinds suffices.
 func (r *Report) competenceGap(in Input) {
-	acts := map[string][]string{}
+	acts := map[string]corpus.Act{}
 	for _, a := range in.Corpus.Acts {
-		acts[a.Predicate] = a.Kinds
+		acts[a.Predicate] = a
 	}
 	required := map[string][]string{} // place -> rules
 	anyOf := map[string][]string{}    // place -> kinds, any one suffices
@@ -309,10 +310,17 @@ func (r *Report) competenceGap(in Input) {
 				required[k] = appendNew(required[k], rule.ID)
 				anyOf[k] = []string{k}
 			}
-			if kinds, ok := acts[l.Pred]; ok {
-				required[l.Pred] = appendNew(required[l.Pred], rule.ID)
-				anyOf[l.Pred] = kinds
+			act, ok := acts[l.Pred]
+			if !ok {
+				continue
 			}
+			if k, known := act.KindFor(l.Args); known {
+				required[k] = appendNew(required[k], rule.ID)
+				anyOf[k] = []string{k}
+				continue
+			}
+			required[l.Pred] = appendNew(required[l.Pred], rule.ID)
+			anyOf[l.Pred] = act.Kinds
 		}
 	}
 	var places []string

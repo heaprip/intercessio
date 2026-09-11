@@ -51,6 +51,21 @@ type Act struct {
 	Predicate string
 	Kinds     []string
 	StoppedBy []string
+	// Outcomes map the outcome constant at position OutcomeArg to the kind that
+	// produces an act with that outcome: a decision to grant is not a judgment.
+	// Empty when one kind covers every outcome.
+	OutcomeArg int
+	Outcomes   map[string]string
+}
+
+// KindFor returns the action kind an act literal with these arguments needs,
+// or false when the outcome is not a known constant.
+func (a Act) KindFor(args []deduction.Term) (string, bool) {
+	if len(a.Outcomes) == 0 || a.OutcomeArg >= len(args) || args[a.OutcomeArg].Kind != deduction.Const {
+		return "", false
+	}
+	k, ok := a.Outcomes[args[a.OutcomeArg].Name]
+	return k, ok
 }
 
 // Version is one immutable state of the corpus.

@@ -285,9 +285,12 @@ func TestLint_ReviewDeadEndFollowsHolders(t *testing.T) {
 	if !strings.Contains(f.Message, "declared: tribunus, vacant") {
 		t.Fatalf("must say the tribunate is declared and vacant: %s", f)
 	}
-	// a decision needs grant_status or judge; the praetor grants, so no gap is
-	// claimed even though nobody may judge — see the ledger
-	mustNotFind(t, out, "competence-gap", "")
+	// a guilty decision is a judgment: the praetor may grant, nobody may judge
+	gap := mustFind(t, out, "competence-gap", "judge")
+	if !strings.Contains(gap.Message, "r_offense") || strings.Contains(gap.Message, "r_status,") {
+		t.Fatalf("judge is required by the rules on guilt, not by the grant: %s", gap)
+	}
+	mustNotFind(t, out, "competence-gap", "grant_status")
 
 	s, rep = loadCasus(t, "citizenship", func(w world) {
 		w["facts"] = append(w["facts"].([]any), map[string]any{
