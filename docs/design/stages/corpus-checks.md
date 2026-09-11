@@ -41,13 +41,13 @@ tags:
 - то же на обеих стратегиях разрешения норм.
 
 **Прототип готов, срез вехи сделан, гейт пройден**: `internal/impact`,
-`internal/powergraph`, `internal/linter`, тесты `TestLint_*`. В срезе — десять
+`internal/powergraph`, `internal/linter`, тесты `TestLint_*`. В срезе — одиннадцать
 провалов каталога (`retroactivity`, `taking-of-vested`,
 `underdetermined-condition`, `dead-conclusion`, `competence-gap`,
-`review-dead-end`, `circumventable-condition`, `closed-eligibility` и частично
+`review-dead-end`, `review-cycle`, `circumventable-condition`, `closed-eligibility` и частично
 `indeterminacy` и `empty-right`) и цикл вытеснения из загрузчика. Не сделаны
 `delegated-discretion`, `duty-without-consequence`, `ladder-without-last-step`,
-`norm-nobody-applies`, `impossible-duty`, `review-cycle`, `dangling-succession`.
+`norm-nobody-applies`, `impossible-duty`, `dangling-succession`.
 
 Демонстрация — `TestLint_RetroactiveAmendmentOfC1`, эталон
 `internal/linter/testdata/citizenship-c1-retroactive.golden`: правка в периоде 35 с
@@ -63,8 +63,9 @@ tags:
   решении. Защиту дала форма правил, а не вид нормы;
 - **отмена нормы оставляла висящие пары вытеснения** — отмена `A4` давала ошибку
   «правило не существует», пока версия не стала уносить пары вместе с нормой;
-- **пересмотр свёрнут, и тупиком оказывается почти каждая должность**: сдерживание
-  в прототипе — только intercessio над решениями дел;
+- **пересмотр был свёрнут, и тупиком оказывалась почти каждая должность**: тогда
+  сдерживание было только intercessio. По решению автора добавлены пересмотр и
+  согласие коллег — пока данными и рёбрами графа, без пути обжалования в деле;
 - **условие допуска в казусе о допуске действительно обходимо**: цепочка
   `eligible ← holds_right ← status ← adrogatio` находится обходом без единого
   знания о Клодии, и цензор, совершающий акт, замыкает допуск на себя.
