@@ -27,7 +27,14 @@ const (
 	Expired           Kind = "expired"
 	Vacant            Kind = "vacant"
 	// Unserved: a model call did not happen and the declared fallback was taken.
-	Unserved      Kind = "unserved"
+	Unserved Kind = "unserved"
+	// Amendment: the auctor changed the corpus in the amendment phase.
+	Amendment Kind = "amendment"
+	// Grievance: a person touched by an amendment; the outcome says what became
+	// of it: queued, filed, deferred or no-remedy.
+	Grievance Kind = "grievance"
+	// Deferred: a petition that did not fit the case budget of the period.
+	Deferred      Kind = "deferred"
 	PeriodSummary Kind = "period-summary"
 )
 

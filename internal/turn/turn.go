@@ -1,6 +1,5 @@
-// Package turn advances a period: finalization of earlier decisions, living,
-// report. Prototype: the amendment phase is empty, the stub auctor changes
-// nothing.
+// Package turn advances a period: amendment, finalization of earlier
+// decisions, living, report. Prototype: the auctor is a script.
 package turn
 
 import (
@@ -14,6 +13,7 @@ import (
 	"github.com/heaprip/intercessio/internal/deduction"
 	"github.com/heaprip/intercessio/internal/entitlement"
 	"github.com/heaprip/intercessio/internal/facts"
+	"github.com/heaprip/intercessio/internal/impact"
 	"github.com/heaprip/intercessio/internal/journal"
 	"github.com/heaprip/intercessio/internal/period"
 )
@@ -26,6 +26,8 @@ type State struct {
 	Cases   []cases.Case
 	Journal journal.Journal
 	Seed    int64
+	// Queue holds grievances that did not fit an earlier period's budget.
+	Queue []Grievance
 }
 
 // Participants is the actors seam as the turn consumes it: a stub or a model.
@@ -40,7 +42,11 @@ type Participants interface {
 type Config struct {
 	Strategy entitlement.Strategy
 	Actors   Participants
-	Term     int // periods a case may stay open
+	Auctor   Auctor // nil: the corpus does not change
+	Term     int    // periods a case may stay open
+	// Budget is how many private cases — grievances and petitions — may be
+	// filed in a period. Zero means no limit.
+	Budget int
 }
 
 // Transition is the result of a period: the next state and what was added.
@@ -54,8 +60,10 @@ type period_ struct {
 	s       State
 	cfg     Config
 	now     period.Period
+	corpus  corpus.Version
 	facts   []facts.Fact
 	cases   []cases.Case
+	queue   []Grievance
 	added   []facts.Fact
 	entries []journal.Entry
 	res     *entitlement.Result
@@ -67,7 +75,17 @@ func Advance(s State, cfg Config) (Transition, error) {
 	if cfg.Term == 0 {
 		cfg.Term = 3
 	}
-	p := &period_{s: s, cfg: cfg, now: s.Period, facts: append([]facts.Fact{}, s.Facts...), cases: append([]cases.Case{}, s.Cases...)}
+	p := &period_{s: s, cfg: cfg, now: s.Period, corpus: s.Corpus, facts: append([]facts.Fact{}, s.Facts...),
+		cases: append([]cases.Case{}, s.Cases...), queue: append([]Grievance{}, s.Queue...)}
+
+	// amendment
+	if cfg.Auctor != nil {
+		if ams := cfg.Auctor.Amendments(p.now, p.corpus); len(ams) > 0 {
+			if err := p.amend(ams); err != nil {
+				return Transition{}, err
+			}
+		}
+	}
 
 	x := p.context()
 	for i, c := range p.cases {
@@ -82,7 +100,6 @@ func Advance(s State, cfg Config) (Transition, error) {
 
 	offices, people, statuses := p.domain("office"), p.domain("person"), p.domain("status_kind")
 
-	// petitions
 	exists := func(person, matter string) bool {
 		for _, c := range p.cases {
 			if c.Person == person && c.Matter == matter {
@@ -91,25 +108,7 @@ func Advance(s State, cfg Config) (Transition, error) {
 		}
 		return false
 	}
-	for i, req := range cfg.Actors.Petitions(p.res.Query, people, statuses, exists) {
-		if req.Unserved != "" {
-			e := p.entry(journal.Unserved, req.Person, "", "petition "+req.Status, req.Unserved, "")
-			e.Model, e.Call = req.Model, req.Call
-			p.add(nil, []journal.Entry{e})
-			continue
-		}
-		if !req.File {
-			continue
-		}
-		office := p.firstCompetent(offices, "grant_status")
-		if office == "" {
-			continue
-		}
-		c, f, e := cases.File(p.context(), cases.Petition, fmt.Sprintf("pt%d_%d", p.now, i+1), req.Person, req.Status, office, req.Person, cfg.Term)
-		e.Decider, e.Model, e.Call = req.Decider, req.Model, req.Call
-		p.cases = append(p.cases, c)
-		p.add([]facts.Fact{f}, []journal.Entry{e})
-	}
+	p.private(offices, people, statuses, exists)
 
 	// inspections
 	isPerson := map[string]bool{}
@@ -196,15 +195,122 @@ func Advance(s State, cfg Config) (Transition, error) {
 	// report
 	p.add(nil, []journal.Entry{{
 		Period: p.now, Kind: journal.PeriodSummary, Decider: journal.ByRule,
-		Subject: fmt.Sprintf("violations=%d checked=%d bearers=%d cases=%d", len(violations), checked, len(bearers), len(p.cases)),
+		Subject: fmt.Sprintf("violations=%d checked=%d bearers=%d cases=%d queue=%d", len(violations), checked, len(bearers), len(p.cases), len(p.queue)),
 	}})
 
-	next := State{Period: p.now + 1, Corpus: s.Corpus, Facts: p.facts, Cases: p.cases, Journal: s.Journal.Append(p.entries...), Seed: s.Seed}
+	next := State{Period: p.now + 1, Corpus: p.corpus, Facts: p.facts, Cases: p.cases, Journal: s.Journal.Append(p.entries...), Seed: s.Seed, Queue: p.queue}
 	return Transition{Next: next, Facts: p.added, Entries: next.Journal.Entries[len(s.Journal.Entries):]}, nil
 }
 
+// amend applies the auctor's amendments, recounts who they touched and queues
+// their grievances.
+func (p *period_) amend(ams []Amendment) error {
+	before := p.corpus
+	after := apply(before, ams)
+	from := p.now
+	for _, a := range ams {
+		subject := "repeal " + a.Repeal
+		if a.Enact != nil {
+			subject = "enact " + a.Enact.ID
+			if a.Enact.InForce < from {
+				from = a.Enact.InForce
+			}
+		}
+		p.add(nil, []journal.Entry{p.entry(journal.Amendment, "auctor", "", subject, fmt.Sprintf("v%d", after.Number), "")})
+	}
+	imp, err := impact.Compute(p.cfg.Strategy, before, after, p.facts, from, p.now)
+	if err != nil {
+		return err
+	}
+	for _, g := range grievances(imp, p.domain("person"), p.now) {
+		p.add(nil, []journal.Entry{p.entry(journal.Grievance, g.Person, "", g.Loss, "queued", "")})
+		p.queue = append(p.queue, g)
+	}
+	p.corpus = after
+	return nil
+}
+
+// private files grievances from the queue and petitions of the period in one
+// order — heavier loss first, older first — until the budget is spent.
+// Grievances that do not fit stay queued; petitions that do not fit are asked
+// again next period.
+func (p *period_) private(offices, people, statuses []string, exists func(person, matter string) bool) {
+	type item struct {
+		g   *Grievance
+		req actors.Request
+	}
+	var items []item
+	for i := range p.queue {
+		items = append(items, item{g: &p.queue[i]})
+	}
+	for _, req := range p.cfg.Actors.Petitions(p.res.Query, people, statuses, exists) {
+		if req.Unserved != "" {
+			e := p.entry(journal.Unserved, req.Person, "", "petition "+req.Status, req.Unserved, "")
+			e.Model, e.Call = req.Model, req.Call
+			p.add(nil, []journal.Entry{e})
+			continue
+		}
+		if req.File {
+			items = append(items, item{req: req})
+		}
+	}
+	weight := func(it item) (int, period.Period, string) {
+		if it.g != nil {
+			return it.g.Weight, it.g.Since, it.g.Person
+		}
+		return weightPetition, p.now, it.req.Person
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		wa, sa, pa := weight(items[i])
+		wb, sb, pb := weight(items[j])
+		if wa != wb {
+			return wa > wb
+		}
+		if sa != sb {
+			return sa < sb
+		}
+		return pa < pb
+	})
+
+	var keep []Grievance
+	filed := 0
+	for _, it := range items {
+		person, matter := it.req.Person, it.req.Status
+		if it.g != nil {
+			person, matter = it.g.Person, it.g.Matter
+		}
+		office := p.firstCompetent(offices, "grant_status")
+		if it.g != nil && (matter == "" || office == "") {
+			p.add(nil, []journal.Entry{p.entry(journal.Grievance, person, "", it.g.Loss, "no-remedy", "")})
+			continue
+		}
+		if office == "" || exists(person, matter) {
+			continue
+		}
+		if p.cfg.Budget > 0 && filed >= p.cfg.Budget {
+			if it.g != nil {
+				keep = append(keep, *it.g)
+				p.add(nil, []journal.Entry{p.entry(journal.Grievance, person, "", it.g.Loss, "deferred", "")})
+			} else {
+				p.add(nil, []journal.Entry{p.entry(journal.Deferred, person, "", "petition "+matter, "", "")})
+			}
+			continue
+		}
+		filed++
+		c, f, e := cases.File(p.context(), cases.Petition, fmt.Sprintf("pt%d_%d", p.now, filed), person, matter, office, person, p.cfg.Term)
+		if it.g != nil {
+			p.add(nil, []journal.Entry{p.entry(journal.Grievance, person, office, it.g.Loss, "filed", "")})
+		} else {
+			e.Decider, e.Model, e.Call = it.req.Decider, it.req.Model, it.req.Call
+		}
+		p.cases = append(p.cases, c)
+		p.add([]facts.Fact{f}, []journal.Entry{e})
+	}
+	p.queue = keep
+}
+
 func (p *period_) context() cases.Context {
-	x := cases.Context{Now: p.now, Basis: journal.Basis{Strategy: p.cfg.Strategy.Name()}}
+	x := cases.Context{Now: p.now, Basis: journal.Basis{Strategy: p.cfg.Strategy.Name(), Corpus: p.corpus.Number}}
 	if p.res != nil {
 		x.Query = p.res.Query
 	}
@@ -213,7 +319,7 @@ func (p *period_) context() cases.Context {
 
 func (p *period_) entry(kind journal.Kind, actor, office, subject, outcome, rule string) journal.Entry {
 	return journal.Entry{Period: p.now, Kind: kind, Actor: actor, Office: office, Subject: subject, Outcome: outcome,
-		Basis: journal.Basis{Rule: rule, Strategy: p.cfg.Strategy.Name()}, Decider: journal.ByRule}
+		Basis: journal.Basis{Rule: rule, Strategy: p.cfg.Strategy.Name(), Corpus: p.corpus.Number}, Decider: journal.ByRule}
 }
 
 func (p *period_) add(fs []facts.Fact, es []journal.Entry) {
@@ -223,7 +329,7 @@ func (p *period_) add(fs []facts.Fact, es []journal.Entry) {
 }
 
 func (p *period_) resolve() error {
-	res, err := entitlement.Resolve(p.cfg.Strategy, p.s.Corpus, p.facts, p.now)
+	res, err := entitlement.Resolve(p.cfg.Strategy, p.corpus, p.facts, p.now)
 	if err != nil {
 		return err
 	}
@@ -271,7 +377,7 @@ func (p *period_) occupant(office string) string {
 }
 
 func (p *period_) capacity(office string) (int, bool) {
-	for _, a := range p.s.Corpus.DeclarationsAt(p.now) {
+	for _, a := range p.corpus.DeclarationsAt(p.now) {
 		if a.Pred == "capacity" && len(a.Args) == 2 && a.Args[0].Const == office {
 			return a.Args[1].Num, true
 		}
