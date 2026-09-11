@@ -34,7 +34,11 @@ const (
 	// of it: queued, filed, deferred or no-remedy.
 	Grievance Kind = "grievance"
 	// Deferred: a petition that did not fit the case budget of the period.
-	Deferred      Kind = "deferred"
+	Deferred Kind = "deferred"
+	// Recusal: the case concerns its decider and passed to another holder.
+	Recusal Kind = "recusal"
+	// Conflict: the case concerns its decider and nobody else could take it.
+	Conflict      Kind = "conflict"
 	PeriodSummary Kind = "period-summary"
 )
 

@@ -164,6 +164,7 @@ func Lint(in Input) (*Report, error) {
 	rep.reviewDeadEnd()
 	rep.reviewCycle()
 	rep.competenceGap(in)
+	rep.judgeInOwnCause(in)
 	rep.circumventable()
 	rep.closedEligibility()
 
@@ -332,6 +333,39 @@ func (r *Report) reviewCycle() {
 		reported[key] = true
 		r.Findings = append(r.Findings, Finding{Failure: "review-cycle", Code: "review-cycle", Channel: Linter, Place: members[0],
 			Message: "review comes back to where it started: " + strings.Join(cycle, " -> ")})
+	}
+}
+
+// judgeInOwnCause: a kind of decision that a single person in effect may take.
+// A case about that person has nobody else to go to, so they decide it
+// themselves. Decisions are the acts whose outcomes the schema names.
+func (r *Report) judgeInOwnCause(in Input) {
+	kinds := map[string]bool{}
+	for _, a := range in.Corpus.Acts {
+		for _, k := range a.Outcomes {
+			kinds[k] = true
+		}
+	}
+	var names []string
+	for k := range kinds {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	for _, k := range names {
+		var who, where []string
+		for _, e := range r.Graph.Find(powergraph.Competence, "", k) {
+			for _, h := range r.Graph.Office(e.From).Holders {
+				if !contains(who, h) {
+					who = append(who, h)
+					where = append(where, e.From)
+				}
+			}
+		}
+		if len(who) != 1 {
+			continue
+		}
+		r.Findings = append(r.Findings, Finding{Failure: "judge-in-own-cause", Code: "judge-in-own-cause", Channel: Linter, Place: k,
+			Message: fmt.Sprintf("only %s (%s) may %s: a case about them is decided by them", who[0], where[0], k), People: who})
 	}
 }
 

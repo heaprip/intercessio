@@ -391,3 +391,22 @@ func TestLint_ConcurrenceRestrainsTheCensor(t *testing.T) {
 	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
 	mustFind(t, out, "circumventable-condition", "eligible")
 }
+
+// A single praetor on the bench is the only one who may grant: a petition of
+// his own goes to himself. A second holder lifts it.
+func TestLint_JudgeInOwnCause(t *testing.T) {
+	s, rep := loadCasus(t, "citizenship", nil)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 31, nil, s.Corpus)
+	f := mustFind(t, out, "judge-in-own-cause", "grant_status")
+	if strings.Join(f.People, ",") != "gaius" {
+		t.Fatalf("must name gaius: %s", f)
+	}
+
+	s, rep = loadCasus(t, "citizenship", func(w world) {
+		w["facts"] = append(w["facts"].([]any), map[string]any{
+			"id": "occ_second", "p": "occupies", "a": []any{"marcus", "praetor", 31, 31}, "by": "scenario", "period": 31,
+		})
+	})
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 31, nil, s.Corpus)
+	mustNotFind(t, out, "judge-in-own-cause", "")
+}

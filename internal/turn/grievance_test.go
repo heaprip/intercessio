@@ -1,6 +1,7 @@
 package turn
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/heaprip/intercessio/internal/corpus"
@@ -106,5 +107,60 @@ func TestAdvance_ReplayWithAmendment(t *testing.T) {
 		if a.Entries[i] != b.Entries[i] {
 			t.Fatalf("entry %d differs: %s / %s", i, a.Entries[i], b.Entries[i])
 		}
+	}
+}
+
+func caseOf(j journal.Journal, person string, now int) string {
+	for _, e := range j.Of(journal.PetitionFiled) {
+		if int(e.Period) == now && strings.HasPrefix(e.Subject, person+" ") {
+			return e.Case
+		}
+	}
+	return ""
+}
+
+func decidedBy(j journal.Journal, id string) string {
+	for _, e := range j.Entries {
+		if e.Case == id && (e.Kind == journal.Decision || e.Kind == journal.NonLiquet) {
+			return e.Actor
+		}
+	}
+	return ""
+}
+
+// The praetor stripped of citizenship has nobody to hand his grievance to: he
+// decides it himself, and the journal records the conflict.
+func TestAdvance_OfficialDecidesOwnGrievanceAsConflict(t *testing.T) {
+	cfg := base
+	cfg.Auctor = stripCitizens()
+	s := play(t, start(t, nil), cfg, 2)
+	id := caseOf(s.Journal, "lucius", 31)
+	if id == "" || decidedBy(s.Journal, id) != "lucius" {
+		dump(t, s.Journal)
+		t.Fatalf("lucius's case %q decided by %q", id, decidedBy(s.Journal, id))
+	}
+	if !has(s.Journal, journal.Conflict, 31, "case="+id) {
+		dump(t, s.Journal)
+		t.Fatal("no conflict recorded")
+	}
+}
+
+// With a second praetor on the bench the concerned one steps aside.
+func TestAdvance_RecusalToColleague(t *testing.T) {
+	cfg := base
+	cfg.Auctor = stripCitizens()
+	s := play(t, start(t, func(w map[string]any) {
+		w["facts"] = append(w["facts"].([]any), map[string]any{
+			"id": "occ_marcus", "p": "occupies", "a": []any{"marcus", "praetor", 31, 99}, "by": "scenario", "period": 31,
+		})
+	}), cfg, 2)
+	id := caseOf(s.Journal, "lucius", 31)
+	if got := decidedBy(s.Journal, id); got != "marcus" {
+		dump(t, s.Journal)
+		t.Fatalf("lucius's case decided by %q, want marcus", got)
+	}
+	if !has(s.Journal, journal.Recusal, 31, "case="+id) || has(s.Journal, journal.Conflict, 31, "case="+id) {
+		dump(t, s.Journal)
+		t.Fatal("want a recusal and no conflict")
 	}
 }

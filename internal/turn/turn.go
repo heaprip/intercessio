@@ -171,10 +171,21 @@ func Advance(s State, cfg Config) (Transition, error) {
 		if c.Status != cases.Open {
 			continue
 		}
-		actor := p.occupant(c.Office)
+		actor, office, conflict := p.decider(c, offices)
 		if actor == "" {
 			p.add(nil, []journal.Entry{p.entry(journal.Vacant, "", c.Office, c.ID, "", "")})
 			continue
+		}
+		if actor != p.occupant(c.Office) || office != c.Office {
+			e := p.entry(journal.Recusal, actor, office, c.Person+" "+c.Matter, "from "+p.occupant(c.Office)+" "+c.Office, "")
+			e.Case = c.ID
+			p.add(nil, []journal.Entry{e})
+			c.Office = office
+		}
+		if conflict {
+			e := p.entry(journal.Conflict, actor, office, c.Person+" "+c.Matter, "decides own case", "")
+			e.Case = c.ID
+			p.add(nil, []journal.Entry{e})
 		}
 		c, fs, es := cases.Decide(p.context(), c, actor, cfg.Actors.Propose)
 		p.cases[i] = c
@@ -359,7 +370,44 @@ func (p *period_) firstCompetent(offices []string, kind string) string {
 	return ""
 }
 
+// decider picks who decides a case. Nobody decides their own case while
+// someone else can: first another holder of the office, then a holder of
+// another office competent for the same kind. Only when there is nobody else
+// does the concerned holder decide, and that is a conflict.
+func (p *period_) decider(c cases.Case, offices []string) (actor, office string, conflict bool) {
+	holders := p.holders(c.Office)
+	if len(holders) == 0 {
+		return "", c.Office, false
+	}
+	for _, h := range holders {
+		if h != c.Person {
+			return h, c.Office, false
+		}
+	}
+	for _, o := range offices {
+		if o == c.Office {
+			continue
+		}
+		if v, _ := competence.Check(p.res.Query, o, c.ActionKind()); v != competence.Allowed {
+			continue
+		}
+		for _, h := range p.holders(o) {
+			if h != c.Person {
+				return h, o, false
+			}
+		}
+	}
+	return holders[0], c.Office, true
+}
+
 func (p *period_) occupant(office string) string {
+	if h := p.holders(office); len(h) > 0 {
+		return h[0]
+	}
+	return ""
+}
+
+func (p *period_) holders(office string) []string {
 	var who []string
 	for _, f := range p.visible() {
 		if f.Pred != "occupies" || len(f.Args) != 4 || f.Args[1].Const != office {
@@ -370,10 +418,7 @@ func (p *period_) occupant(office string) string {
 		}
 	}
 	sort.Strings(who)
-	if len(who) == 0 {
-		return ""
-	}
-	return who[0]
+	return who
 }
 
 func (p *period_) capacity(office string) (int, bool) {
