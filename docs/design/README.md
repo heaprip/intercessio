@@ -31,7 +31,7 @@ tags:
 ## Компоненты и почему границы проходят здесь
 
 Границы проведены по владельцам данных и инвариантам, а не по техническим
-слоям. Компонентов двадцать, и они складываются в семь групп.
+слоям. Компонентов двадцать один, и они складываются в семь групп.
 
 **Основание.** [[docs/design/components/period|period]] — номер периода,
 интервалы и арифметика над ними. [[docs/design/components/journal|journal]] —
@@ -66,6 +66,8 @@ tags:
 периода. [[docs/design/components/censor|censor]] — аналитика поверх журнала без
 права решать. Они не блокируют проживание, но из их выхода собирается стопка
 карточек игрока, поэтому нужны к первой играбельной версии.
+[[docs/design/components/agenda|agenda]] собирает из находок и событий периода
+стопку карточек, которую разбирает игрок.
 
 **Дело и ход.** [[docs/design/components/case|case]] ведёт дело от прошения до
 исполнения и держит жизненный цикл обязанностей между периодами.
@@ -160,8 +162,8 @@ flowchart TD
   report --> trace["Трасса вывода · deduction"]
 ```
 
-Какой компонент собирает стопку из отчёта и находок, не решено — см. «Не решено»
-ниже.
+Стопку собирает `agenda` — гипотеза помощника; кто пишет предложение правки, не
+решено — см. «Не решено» ниже.
 
 ## Граф зависимостей
 
@@ -216,6 +218,10 @@ flowchart TD
   censor --> power_graph
   storage --> facts
   storage --> journal
+  agenda --> linter
+  agenda --> journal
+  agenda --> corpus
+  agenda --> turn
 ```
 
 Листья — `period`, `deduction` и `llm-runtime`: их можно делать в любой момент.
@@ -245,6 +251,7 @@ flowchart TD
 | фаза | `turn` |
 | отчёт периода | `report` |
 | стенд, находка практики | `censor` |
+| стопка, карточка | `agenda` |
 
 ### Не решено
 
@@ -254,7 +261,7 @@ flowchart TD
 
 | Что | Кандидаты | Где проявляется |
 | --- | --- | --- |
-| сборка стопки карточек и предложение правки | `report`; `turn`; новый компонент | форма хода принята, владельца у стопки и у роли советника нет |
+| предложение правки — роль советника | `agenda`; отдельная роль в `actors` | стопку собирает `agenda` (гипотеза помощника), предложение пока по шаблону |
 
 Загрузчик владением больше не заблокирован: типы правил отданы `deduction`, у
 загрузчика и вычислителя свои диагностики, а игровой `Finding` — у линтера,
@@ -301,6 +308,7 @@ flowchart TD
 | [[docs/design/stages/playable-case\|playable-case]] | `competence`, `case`, `actors` заглушками, `turn`, `journal` | derived-state |
 | [[docs/design/stages/live-actors\|live-actors]] | `llm-runtime`, LLM-реализация `actors` | playable-case |
 | [[docs/design/stages/self-generated-cases\|self-generated-cases]] | `impact` как источник поводов | corpus-checks, playable-case |
+| [[docs/design/stages/stack-of-proposals\|stack-of-proposals]] | `agenda` | corpus-checks, self-generated-cases |
 | [[docs/design/stages/external-view\|external-view]] | `api`, `report`, `front` | playable-case, corpus-checks |
 | [[docs/design/stages/censor-stand\|censor-stand]] | `censor` | playable-case |
 | [[docs/design/stages/durable-storage\|durable-storage]] | `storage` | playable-case |
