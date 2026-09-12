@@ -132,6 +132,34 @@ func (t *Trace) String() string {
 	return b.String()
 }
 
+// Rules lists, sorted and once each, every rule that took part in the trace:
+// the rules that concluded and the opposite rules they beat.
+func (t *Trace) Rules() []string {
+	seen := map[string]bool{}
+	var walk func(t *Trace)
+	walk = func(t *Trace) {
+		if t == nil {
+			return
+		}
+		if t.Rule != "fact" && t.Rule != "?" && t.Rule != "" {
+			seen[t.Rule] = true
+		}
+		for _, d := range t.Defeated {
+			seen[d] = true
+		}
+		for _, p := range t.Premises {
+			walk(p)
+		}
+	}
+	walk(t)
+	out := make([]string, 0, len(seen))
+	for r := range seen {
+		out = append(out, r)
+	}
+	sort.Strings(out)
+	return out
+}
+
 type instance struct {
 	rule Rule
 	head Atom

@@ -11,6 +11,7 @@ import (
 	"github.com/heaprip/intercessio/internal/corpus"
 	"github.com/heaprip/intercessio/internal/deduction"
 	"github.com/heaprip/intercessio/internal/entitlement"
+	"github.com/heaprip/intercessio/internal/period"
 	"github.com/heaprip/intercessio/internal/powergraph"
 	"github.com/heaprip/intercessio/internal/scenario"
 	"github.com/heaprip/intercessio/internal/turn"
@@ -74,7 +75,8 @@ func stand(t *testing.T, mutate func(map[string]any), auctor turn.Auctor, period
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := Build(Input{Journal: st.Journal, From: from, To: to, Graph: g, Corpus: st.Corpus, Preset: Preset{NonLiquet: 0.3}})
+	people := powergraph.Domain(powergraph.Stored(st.Corpus, st.Facts, to), "person")
+	out := Build(Input{Journal: st.Journal, From: from, To: to, Graph: g, Corpus: st.Corpus, People: people, Preset: Preset{NonLiquet: 0.3}})
 	if testing.Verbose() {
 		t.Log(out)
 	}
@@ -126,7 +128,49 @@ func TestStand_MovesWithTheGame(t *testing.T) {
 	}
 
 	if axis(t, quiet, "enforcement coverage") <= 0 {
-		t.Fatalf("the quaestor covers bearers: %s", quiet)
+		t.Fatalf("the quaestor covers people: %s", quiet)
+	}
+	if axis(t, stripped, "enforcement coverage") != axis(t, quiet, "enforcement coverage") {
+		t.Fatalf("stripping citizens must not improve enforcement coverage: %s / %s", quiet, stripped)
 	}
 
+}
+
+// A norm none of whose rules took part in any decision over a long enough window
+// is a silent failure: the exceptions C2 and C3 and the protection A4 are never
+// needed in a quiet game, while C1 grants and A2 checks competence.
+func TestStand_UnappliedNorms(t *testing.T) {
+	cfg := turn.Config{Strategy: entitlement.Hierarchy{}, Actors: actors.Stub{}}
+	st := start(t, nil)
+	for i := 0; i < 3; i++ {
+		tr, err := turn.Advance(st, cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		st = tr.Next
+	}
+	silent := func(window int, preset int) map[string]bool {
+		out := Build(Input{Journal: st.Journal, From: st.Period - period.Period(window), To: st.Period - 1, Corpus: st.Corpus, Preset: Preset{Silent: preset}})
+		got := map[string]bool{}
+		for _, f := range out.Findings {
+			if f.Failure == "unapplied-norm" {
+				got[f.Place] = true
+			}
+		}
+		return got
+	}
+	got := silent(3, 3)
+	for _, n := range []string{"A4", "C2", "C3"} {
+		if !got[n] {
+			t.Errorf("%s must be silent: %v", n, got)
+		}
+	}
+	for _, n := range []string{"A1", "A2", "C1", "C4"} {
+		if got[n] {
+			t.Errorf("%s took part in decisions: %v", n, got)
+		}
+	}
+	if len(silent(2, 3)) != 0 {
+		t.Fatal("a window shorter than the preset reports nothing")
+	}
 }

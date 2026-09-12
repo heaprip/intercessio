@@ -3,6 +3,8 @@
 package actors
 
 import (
+	"strings"
+
 	"github.com/heaprip/intercessio/internal/cases"
 	"github.com/heaprip/intercessio/internal/competence"
 	"github.com/heaprip/intercessio/internal/deduction"
@@ -78,7 +80,7 @@ func (Stub) Propose(c cases.Case, q competence.Query) cases.Proposal {
 	ans := q(atom)
 	p := cases.Proposal{Decider: journal.ByStub}
 	if ans.Trace != nil {
-		p.Rule = ans.Trace.Rule
+		p.Rule, p.Rules = ans.Trace.Rule, strings.Join(ans.Trace.Rules(), ",")
 	}
 	switch ans.Outcome {
 	case deduction.Proved:

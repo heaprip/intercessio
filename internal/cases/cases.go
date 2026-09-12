@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"sort"
+	"strings"
 
 	"github.com/heaprip/intercessio/internal/competence"
 	"github.com/heaprip/intercessio/internal/deduction"
@@ -108,6 +109,7 @@ func File(x Context, kind Kind, id, person, matter, office, filer string, term i
 type Proposal struct {
 	Outcome  string
 	Rule     string // rule the normative result rested on
+	Rules    string // every rule of the trace, comma-separated
 	Decider  journal.Decider
 	Model    string
 	Call     string
@@ -126,8 +128,13 @@ func Decide(x Context, c Case, actor string, propose Propose) (Case, []facts.Fac
 		return c, nil, []journal.Entry{x.entry(journal.UltraVires, c, actor, c.Office, c.ActionKind(), string(verdict), rule, journal.ByRule)}
 	}
 	p := propose(c, x.Query)
+	rules := p.Rules
+	if rule != "" {
+		rules = strings.Trim(rules+","+rule, ",")
+	}
 	stamp := func(e journal.Entry) []journal.Entry {
 		e.Decider, e.Model, e.Call = p.Decider, p.Model, p.Call
+		e.Basis.Rules = rules
 		return []journal.Entry{e}
 	}
 	if p.Unserved != "" {

@@ -53,7 +53,11 @@ const (
 
 // Basis is what the step rested on.
 type Basis struct {
-	Rule     string // the rule the answer rested on, if any
+	Rule string // the rule the answer rested on, if any
+	// Rules is every rule that took part, comma-separated: the trace of the
+	// answer and the competence it was checked against. A string keeps the
+	// entry comparable.
+	Rules    string
 	Corpus   int    // corpus version
 	Strategy string // resolution strategy
 }

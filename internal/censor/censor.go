@@ -22,6 +22,9 @@ type Preset struct {
 	// NonLiquet is the share of answered cases ending non liquet above which
 	// the window is a mass non liquet. Zero disables the finding.
 	NonLiquet float64
+	// Silent is how many periods a window must span before a norm none of whose
+	// rules took part in any decision is reported. Zero disables the finding.
+	Silent int
 }
 
 // Axis is one measure of the stand with what it was counted from.
@@ -65,7 +68,9 @@ type Input struct {
 	To      period.Period
 	Graph   *powergraph.Graph
 	Corpus  corpus.Version
-	Preset  Preset
+	// People is the population at To: the denominator of enforcement coverage.
+	People []string
+	Preset Preset
 }
 
 func ratio(n, d int) float64 {
@@ -78,12 +83,17 @@ func ratio(n, d int) float64 {
 // Build counts the axes and the journal findings.
 func Build(in Input) Stand {
 	st := Stand{From: in.From, To: in.To}
-	decided, nonLiquet, expired, amendments, bearers := 0, 0, 0, 0, 0
+	decided, nonLiquet, expired, amendments := 0, 0, 0, 0
 	var concerned []string
+	applied := map[string]bool{}
 	for _, e := range in.Journal.Entries {
 		if e.Period < in.From || e.Period > in.To {
 			continue
 		}
+		for _, r := range strings.Split(e.Basis.Rules, ",") {
+			applied[r] = true
+		}
+		applied[e.Basis.Rule] = true
 		switch e.Kind {
 		case journal.Decision:
 			decided++
@@ -96,13 +106,6 @@ func Build(in Input) Stand {
 			expired++
 		case journal.Amendment:
 			amendments++
-		case journal.PeriodSummary:
-			if e.Period == in.To {
-				var v, c, b int
-				if n, _ := fmt.Sscanf(e.Subject, "violations=%d checked=%d bearers=%d", &v, &c, &b); n == 3 {
-					bearers = b
-				}
-			}
 		}
 	}
 	answered := decided + nonLiquet
@@ -121,7 +124,9 @@ func Build(in Input) Stand {
 		}
 	}
 	st.Axes = append(st.Axes,
-		Axis{"enforcement coverage", ratio(capacity, bearers), fmt.Sprintf("capacity %d/bearers %d", capacity, bearers)},
+		// per person, not per duty bearer: an amendment stripping citizens of
+		// their duties must not make enforcement look better
+		Axis{"enforcement coverage", ratio(capacity, len(in.People)), fmt.Sprintf("capacity %d/people %d", capacity, len(in.People))},
 		Axis{"amendments", float64(amendments), "in the window"},
 	)
 
@@ -134,7 +139,37 @@ func Build(in Input) Stand {
 			People:  concerned,
 		})
 	}
+	if in.Preset.Silent > 0 && int(in.To-in.From)+1 >= in.Preset.Silent {
+		st.Findings = append(st.Findings, silentNorms(in, applied)...)
+	}
 	return st
+}
+
+// silentNorms: norms in force through the window none of whose rules took part
+// in any answer. Declarations-only norms are left out: they state data, and
+// data is read, not applied.
+func silentNorms(in Input, applied map[string]bool) []linter.Finding {
+	var out []linter.Finding
+	for _, n := range in.Corpus.Norms {
+		if len(n.Rules) == 0 || !n.ActiveAt(in.From) || !n.ActiveAt(in.To) {
+			continue
+		}
+		used := false
+		var ids []string
+		for _, r := range n.Rules {
+			ids = append(ids, r.ID)
+			used = used || applied[r.ID]
+		}
+		if used {
+			continue
+		}
+		out = append(out, linter.Finding{
+			Failure: "unapplied-norm", Code: "unapplied-norm", Channel: linter.Journal, Place: n.ID,
+			Message: fmt.Sprintf("no rule of %s (%s) took part in any decision in periods %d..%d", n.ID, strings.Join(ids, ", "), in.From, in.To),
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Place < out[j].Place })
+	return out
 }
 
 // vetoPlayers counts, for every kind of decision some office may take, the

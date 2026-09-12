@@ -81,9 +81,9 @@ func explain(ans deduction.Answer) string {
 func (m Model) Propose(c cases.Case, q competence.Query) cases.Proposal {
 	atom, outcomes := Normative(c)
 	ans := q(atom)
-	rule := ""
+	rule, rules := "", ""
 	if ans.Trace != nil {
-		rule = ans.Trace.Rule
+		rule, rules = ans.Trace.Rule, strings.Join(ans.Trace.Rules(), ",")
 	}
 	var user strings.Builder
 	fmt.Fprintf(&user, "Office: %s\nCase: %s %s\nPerson: %s\nMatter: %s\nOpened in period: %d\n\n", c.Office, c.Kind, c.ID, c.Person, c.Matter, c.Opened)
@@ -91,7 +91,7 @@ func (m Model) Propose(c cases.Case, q competence.Query) cases.Proposal {
 	fmt.Fprintf(&user, "Allowed outcomes: %s", strings.Join(outcomes[:], ", "))
 	validate, got := pick("outcome", outcomes[:])
 	reply := m.Runtime.Call(m.request("official", officialSystem, user.String()), validate)
-	p := cases.Proposal{Rule: rule, Decider: journal.ByModel, Model: m.Spec.Name, Call: reply.Hash}
+	p := cases.Proposal{Rule: rule, Rules: rules, Decider: journal.ByModel, Model: m.Spec.Name, Call: reply.Hash}
 	if reply.Status != llmruntime.Served {
 		p.Unserved = reply.Reason
 		return p
