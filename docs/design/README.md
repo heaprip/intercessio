@@ -222,6 +222,7 @@ flowchart TD
   agenda --> journal
   agenda --> corpus
   agenda --> turn
+  report --> agenda
 ```
 
 Листья — `period`, `deduction` и `llm-runtime`: их можно делать в любой момент.
