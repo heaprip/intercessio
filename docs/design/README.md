@@ -216,6 +216,7 @@ flowchart TD
   censor --> journal
   censor --> corpus
   censor --> power_graph
+  censor --> linter
   storage --> facts
   storage --> journal
   agenda --> linter
