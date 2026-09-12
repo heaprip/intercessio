@@ -32,6 +32,7 @@ type Input struct {
 	Period   period.Period
 	Entries  []journal.Entry // of the period
 	Lint     *linter.Report  // of the corpus the period was lived under
+	Previous *linter.Report  // of the period before; nil shows every finding
 	Overflow []agenda.Card   // cards that did not fit the stack
 }
 
@@ -46,7 +47,7 @@ func Build(in Input) Report {
 	add("amendment", amendment(in.Entries))
 	add("cases", casesOf(in.Entries))
 	add("enforcement", enforcement(in.Entries))
-	add("linter", findings(in.Lint))
+	add("linter", findings(in.Lint, in.Previous))
 	var over []string
 	for _, c := range in.Overflow {
 		over = append(over, c.String())
@@ -136,15 +137,46 @@ func enforcement(es []journal.Entry) []string {
 	return nil
 }
 
-// findings lists catalog findings; those naming people show them by name.
-func findings(l *linter.Report) []string {
+// findings lists catalog findings that are new since the previous period and
+// those that went away; findings that persist are only counted, so the report
+// does not repeat itself every period. Findings naming people show them.
+func findings(l, prev *linter.Report) []string {
 	if l == nil {
 		return nil
 	}
+	key := func(f linter.Finding) string { return f.Failure + "|" + f.Place + "|" + f.Message }
+	before := map[string]bool{}
+	if prev != nil {
+		for _, f := range prev.Findings {
+			before[key(f)] = true
+		}
+	}
 	var lines []string
+	now := map[string]bool{}
+	persisting := 0
 	for _, f := range l.Findings {
-		if f.Failure != "" {
-			lines = append(lines, f.String())
+		if f.Failure == "" {
+			continue
+		}
+		now[key(f)] = true
+		if before[key(f)] {
+			persisting++
+			continue
+		}
+		prefix := ""
+		if prev != nil {
+			prefix = "new: "
+		}
+		lines = append(lines, prefix+f.String())
+	}
+	if prev != nil {
+		for _, f := range prev.Findings {
+			if f.Failure != "" && !now[key(f)] {
+				lines = append(lines, "gone: "+f.String())
+			}
+		}
+		if persisting > 0 {
+			lines = append(lines, fmt.Sprintf("%d findings persist from earlier periods", persisting))
 		}
 	}
 	return lines

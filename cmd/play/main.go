@@ -83,7 +83,8 @@ func main() {
 	memory := agenda.Memory{}
 	preset := agenda.Preset{Size: *stackSize, Weights: map[string]int{
 		"retroactivity": 5, "taking-of-vested": 5, "judge-in-own-cause": 4, "circumventable-condition": 4, "indeterminacy": 2,
-	}}
+	}, Return: 3}
+	var previous *linter.Report
 	var last []journal.Entry
 	for i := 0; i < *periods; i++ {
 		var lint *linter.Report
@@ -103,7 +104,7 @@ func main() {
 					script[st.Period] = append(script[st.Period], c.Proposal.Amendments...)
 				}
 				fmt.Printf("  %-6s %s\n", verdict, c)
-				memory = memory.Record(c)
+				memory = memory.Record(c, st.Period, verdict == "accept")
 			}
 			cfg.Auctor = script
 		}
@@ -115,7 +116,8 @@ func main() {
 			fmt.Println(e)
 		}
 		if *stackSize > 0 {
-			fmt.Print(report.Build(report.Input{Period: st.Period, Entries: tr.Entries, Lint: lint, Overflow: stack.Overflow}))
+			fmt.Print(report.Build(report.Input{Period: st.Period, Entries: tr.Entries, Lint: lint, Previous: previous, Overflow: stack.Overflow}))
+			previous = lint
 		}
 		last, st = tr.Entries, tr.Next
 	}

@@ -34,6 +34,11 @@ type Card struct {
 	Evidence []string
 	Score    int
 	Proposal Proposal
+	// Reminder: the card was rejected earlier and comes back after the preset
+	// silence, without new evidence.
+	Reminder bool
+	// Persists: the card was accepted earlier and its finding is still there.
+	Persists bool
 }
 
 func (c Card) String() string {
@@ -44,6 +49,12 @@ func (c Card) String() string {
 	s := fmt.Sprintf("%-26s %-24s reach=%-3d score=%-3d %s", name, c.Root, c.Reach, c.Score, c.Proposal.Summary)
 	if len(c.People) > 0 {
 		s += " [" + strings.Join(c.People, ", ") + "]"
+	}
+	switch {
+	case c.Persists:
+		s += " (persists after the accepted amendment)"
+	case c.Reminder:
+		s += " (reminder)"
 	}
 	return s
 }
@@ -59,25 +70,32 @@ type Proposal struct {
 type Preset struct {
 	Size    int
 	Weights map[string]int // by failure slug; missing weighs 1
+	// Return is how many periods a rejected card stays silent before it comes
+	// back as a reminder. Zero: it comes back only with new evidence.
+	Return int
 }
 
 // Seen is what the auctor saw of a card when he decided on it.
 type Seen struct {
-	Reach  int
-	People []string
+	Reach    int
+	People   []string
+	Period   period.Period
+	Accepted bool
 }
 
-// Memory holds the decided cards by key. A decided card comes back only with
-// new evidence: a larger reach or new people.
+// Memory holds the decided cards by key. A decided card comes back with new
+// evidence — a larger reach or new people; an accepted card whose finding is
+// still there comes back at once; a rejected one comes back as a reminder
+// after the preset silence.
 type Memory map[string]Seen
 
-// Record returns a memory with the card decided.
-func (m Memory) Record(c Card) Memory {
+// Record returns a memory with the card decided in period now.
+func (m Memory) Record(c Card, now period.Period, accepted bool) Memory {
 	out := Memory{}
 	for k, v := range m {
 		out[k] = v
 	}
-	out[c.Key] = Seen{Reach: c.Reach, People: append([]string{}, c.People...)}
+	out[c.Key] = Seen{Reach: c.Reach, People: append([]string{}, c.People...), Period: now, Accepted: accepted}
 	return out
 }
 
@@ -155,8 +173,15 @@ func Build(in Input) Stack {
 		c.Score = w * c.Reach
 		c.Proposal = propose(c, in.Corpus)
 		if seen, ok := in.Memory[c.Key]; ok && c.Reach <= seen.Reach && subset(c.People, seen.People) {
-			st.Held = append(st.Held, c)
-			continue
+			switch {
+			case seen.Accepted:
+				c.Persists = true
+			case in.Preset.Return > 0 && in.Now-seen.Period >= period.Period(in.Preset.Return):
+				c.Reminder = true
+			default:
+				st.Held = append(st.Held, c)
+				continue
+			}
 		}
 		cards = append(cards, c)
 	}

@@ -82,7 +82,7 @@ func play(t *testing.T, periods int) []round {
 		script := turn.Script{}
 		for _, c := range stack.Cards {
 			script[st.Period] = append(script[st.Period], c.Proposal.Amendments...)
-			memory = memory.Record(c)
+			memory = memory.Record(c, st.Period, len(c.Proposal.Amendments) > 0)
 		}
 		cfg.Auctor = script
 		tr, err := turn.Advance(st, cfg)
@@ -181,12 +181,37 @@ func TestStack_CardReturnsWithNewEvidence(t *testing.T) {
 	if len(first.Cards) != 1 {
 		t.Fatalf("cards: %v", first.Cards)
 	}
-	memory := Memory{}.Record(first.Cards[0])
+	memory := Memory{}.Record(first.Cards[0], 0, false)
 	if again := Build(Input{Lint: lint, Memory: memory, Preset: preset}); len(again.Cards) != 0 || len(again.Held) != 1 {
 		t.Fatalf("the same card must be held: %+v", again)
 	}
 	lint.Findings[0].People = []string{"gaius", "lucius"}
 	if grown := Build(Input{Lint: lint, Memory: memory, Preset: preset}); len(grown.Cards) != 1 {
 		t.Fatalf("a new person is new evidence: %+v", grown)
+	}
+}
+
+// A rejected card stays silent for the preset number of periods and comes back
+// as a reminder; an accepted card whose finding is still there comes back at
+// once.
+func TestStack_ReminderAndPersistence(t *testing.T) {
+	lint := &linter.Report{Findings: []linter.Finding{
+		{Failure: "review-dead-end", Place: "censor", Message: "no office can stop censor", People: []string{"appius"}, Channel: linter.Linter},
+	}}
+	p := preset
+	p.Return = 2
+	first := Build(Input{Lint: lint, Now: 30, Preset: p})
+	rejected := Memory{}.Record(first.Cards[0], 30, false)
+	if s := Build(Input{Lint: lint, Now: 31, Memory: rejected, Preset: p}); len(s.Cards) != 0 {
+		t.Fatalf("silent in 31: %+v", s.Cards)
+	}
+	s := Build(Input{Lint: lint, Now: 32, Memory: rejected, Preset: p})
+	if len(s.Cards) != 1 || !s.Cards[0].Reminder {
+		t.Fatalf("reminder in 32: %+v", s)
+	}
+	accepted := Memory{}.Record(first.Cards[0], 30, true)
+	s = Build(Input{Lint: lint, Now: 31, Memory: accepted, Preset: p})
+	if len(s.Cards) != 1 || !s.Cards[0].Persists {
+		t.Fatalf("an accepted card with its finding still there must come back: %+v", s)
 	}
 }

@@ -63,3 +63,24 @@ func TestBuild_KeepsDiagnosesApart(t *testing.T) {
 		t.Fatal("overflow of the stack must reach the report")
 	}
 }
+
+// With the previous lint the report shows what is new and what went away, and
+// only counts what persists.
+func TestBuild_FindingsSincePreviousPeriod(t *testing.T) {
+	stay := linter.Finding{Failure: "indeterminacy", Place: "r_a, r_b", Message: "same"}
+	gone := linter.Finding{Failure: "retroactivity", Place: "C2", Message: "enacted in 30, applies from 1"}
+	fresh := linter.Finding{Failure: "judge-in-own-cause", Place: "grant_status", Message: "only lucius", People: []string{"lucius"}}
+	r := Build(Input{Period: 31,
+		Lint:     &linter.Report{Findings: []linter.Finding{stay, fresh}},
+		Previous: &linter.Report{Findings: []linter.Finding{stay, gone}},
+	})
+	got := section(r, "linter")
+	for _, want := range []string{"new: judge-in-own-cause", "gone: retroactivity", "1 findings persist"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("linter section lacks %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "indeterminacy") {
+		t.Fatalf("a persisting finding must only be counted:\n%s", got)
+	}
+}
