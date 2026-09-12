@@ -4,6 +4,7 @@
 //	go run ./cmd/play -periods 3 internal/scenario/testdata/schema.json internal/scenario/testdata/playable/scenario.json
 //	go run ./cmd/play -mode live -model deepseek-no-thinking -records run.jsonl -max-rub 2 ...
 //	go run ./cmd/play -mode replay -records run.jsonl ...
+//	go run ./cmd/play -stack 3 -periods 4 ...   the game goes through stacks, with reports
 package main
 
 import (
@@ -15,8 +16,12 @@ import (
 	"testing/fstest"
 
 	"github.com/heaprip/intercessio/internal/actors"
+	"github.com/heaprip/intercessio/internal/agenda"
 	"github.com/heaprip/intercessio/internal/entitlement"
+	"github.com/heaprip/intercessio/internal/journal"
+	"github.com/heaprip/intercessio/internal/linter"
 	"github.com/heaprip/intercessio/internal/llmruntime"
+	"github.com/heaprip/intercessio/internal/report"
 	"github.com/heaprip/intercessio/internal/scenario"
 	"github.com/heaprip/intercessio/internal/turn"
 )
@@ -29,6 +34,7 @@ func main() {
 	model := flag.String("model", "deepseek-no-thinking", "model profile for live participants")
 	records := flag.String("records", "", "JSONL file of call records: read, and appended to in live mode")
 	maxRub := flag.Float64("max-rub", 1, "spend limit of live calls, rubles")
+	stackSize := flag.Int("stack", 0, "size of the stack; with it the stub auctor accepts every card with a drafted amendment")
 	flag.Parse()
 	if flag.NArg() != 2 {
 		fmt.Fprintln(os.Stderr, "usage: play [flags] schema.json scenario.json")
@@ -74,7 +80,33 @@ func main() {
 	}
 
 	st := turn.State{Period: s.StartPeriod, Corpus: s.Corpus, Facts: s.Facts, Seed: *seed}
+	memory := agenda.Memory{}
+	preset := agenda.Preset{Size: *stackSize, Weights: map[string]int{
+		"retroactivity": 5, "taking-of-vested": 5, "judge-in-own-cause": 4, "circumventable-condition": 4, "indeterminacy": 2,
+	}}
+	var last []journal.Entry
 	for i := 0; i < *periods; i++ {
+		var lint *linter.Report
+		var stack agenda.Stack
+		if *stackSize > 0 {
+			lint, err = linter.Lint(linter.Input{Corpus: st.Corpus, Roles: s.Roles, Facts: st.Facts, Strategy: cfg.Strategy, Now: st.Period})
+			if err != nil {
+				fail(err)
+			}
+			stack = agenda.Build(agenda.Input{Lint: lint, Entries: last, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset})
+			script := turn.Script{}
+			fmt.Printf("stack, period %d: %d cards, %d overflow, %d held\n", st.Period, len(stack.Cards), len(stack.Overflow), len(stack.Held))
+			for _, c := range stack.Cards {
+				verdict := "reject"
+				if len(c.Proposal.Amendments) > 0 {
+					verdict = "accept"
+					script[st.Period] = append(script[st.Period], c.Proposal.Amendments...)
+				}
+				fmt.Printf("  %-6s %s\n", verdict, c)
+				memory = memory.Record(c)
+			}
+			cfg.Auctor = script
+		}
 		tr, err := turn.Advance(st, cfg)
 		if err != nil {
 			fail(err)
@@ -82,7 +114,10 @@ func main() {
 		for _, e := range tr.Entries {
 			fmt.Println(e)
 		}
-		st = tr.Next
+		if *stackSize > 0 {
+			fmt.Print(report.Build(report.Input{Period: st.Period, Entries: tr.Entries, Lint: lint, Overflow: stack.Overflow}))
+		}
+		last, st = tr.Entries, tr.Next
 	}
 	if rt != nil {
 		written := rt.Written()
