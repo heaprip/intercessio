@@ -17,10 +17,12 @@ import (
 
 	"github.com/heaprip/intercessio/internal/actors"
 	"github.com/heaprip/intercessio/internal/agenda"
+	"github.com/heaprip/intercessio/internal/censor"
 	"github.com/heaprip/intercessio/internal/entitlement"
 	"github.com/heaprip/intercessio/internal/journal"
 	"github.com/heaprip/intercessio/internal/linter"
 	"github.com/heaprip/intercessio/internal/llmruntime"
+	"github.com/heaprip/intercessio/internal/powergraph"
 	"github.com/heaprip/intercessio/internal/report"
 	"github.com/heaprip/intercessio/internal/scenario"
 	"github.com/heaprip/intercessio/internal/turn"
@@ -94,7 +96,22 @@ func main() {
 			if err != nil {
 				fail(err)
 			}
-			stack = agenda.Build(agenda.Input{Lint: lint, Entries: last, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset})
+			var practice []linter.Finding
+			if st.Period > s.StartPeriod {
+				to := st.Period - 1
+				from := to - 2
+				if from < s.StartPeriod {
+					from = s.StartPeriod
+				}
+				g, err := powergraph.Build(cfg.Strategy, st.Corpus, st.Facts, to)
+				if err != nil {
+					fail(err)
+				}
+				stand := censor.Build(censor.Input{Journal: st.Journal, From: from, To: to, Graph: g, Corpus: st.Corpus, Preset: censor.Preset{NonLiquet: 0.3}})
+				fmt.Println(stand)
+				practice = stand.Findings
+			}
+			stack = agenda.Build(agenda.Input{Lint: lint, Practice: practice, Entries: last, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset})
 			script := turn.Script{}
 			fmt.Printf("stack, period %d: %d cards, %d overflow, %d held\n", st.Period, len(stack.Cards), len(stack.Overflow), len(stack.Held))
 			for _, c := range stack.Cards {

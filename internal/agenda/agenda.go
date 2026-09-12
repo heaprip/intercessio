@@ -101,12 +101,14 @@ func (m Memory) Record(c Card, now period.Period, accepted bool) Memory {
 
 // Input is what a stack is built from.
 type Input struct {
-	Lint    *linter.Report
-	Entries []journal.Entry // of the period just lived
-	Corpus  corpus.Version
-	Now     period.Period
-	Memory  Memory
-	Preset  Preset
+	Lint *linter.Report
+	// Practice holds the censor's journal findings over the recent window.
+	Practice []linter.Finding
+	Entries  []journal.Entry // of the period just lived
+	Corpus   corpus.Version
+	Now      period.Period
+	Memory   Memory
+	Preset   Preset
 }
 
 // Stack is the result: the cards to decide, those that did not fit and go to
@@ -149,6 +151,9 @@ func Build(in Input) Stack {
 			}
 			add(f.Failure, root(f), string(f.Channel), f.String(), f.People...)
 		}
+	}
+	for _, f := range in.Practice {
+		add(f.Failure, root(f), string(f.Channel), f.String(), f.People...)
 	}
 	for _, e := range in.Entries {
 		switch {
@@ -204,6 +209,9 @@ func Build(in Input) Stack {
 // root groups findings that one fix would answer: every unordered conflict over
 // the same predicate is one card, whatever pairs of rules make it.
 func root(f linter.Finding) string {
+	if f.Failure == "mass-non-liquet" {
+		return "cases" // the window moves every period; the root does not
+	}
 	if f.Failure == "indeterminacy" {
 		if _, after, ok := strings.Cut(f.Message, "opposite "); ok {
 			return strings.Fields(after)[0]

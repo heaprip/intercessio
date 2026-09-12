@@ -29,6 +29,8 @@ const (
 	Linter Channel = "linter"
 	// Recount: the subtraction of two runs over two versions of the corpus.
 	Recount Channel = "recount"
+	// Journal: the accumulated history; findings of the censor.
+	Journal Channel = "journal"
 )
 
 // Finding is one remark for the player.
