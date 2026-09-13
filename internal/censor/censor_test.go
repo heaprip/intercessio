@@ -174,3 +174,40 @@ func TestStand_UnappliedNorms(t *testing.T) {
 		t.Fatal("a window shorter than the preset reports nothing")
 	}
 }
+
+// A path of review nobody took is a silent failure; an appeal takes it.
+func TestStand_UnusedReviewPath(t *testing.T) {
+	consul := func(w map[string]any) {
+		w["offices"] = append(w["offices"].([]any), map[string]any{"id": "consul", "competences": []any{"review"}, "term": 1, "reviews": []any{"praetor"}})
+		w["people"] = append(w["people"].([]any), map[string]any{"id": "quintus", "status": "civis"})
+		w["facts"] = append(w["facts"].([]any), map[string]any{"id": "occ_quintus", "p": "occupies", "a": []any{"quintus", "consul", 1, 99}, "by": "scenario"})
+	}
+	run := func(appeals bool) map[string]bool {
+		cfg := turn.Config{Strategy: entitlement.Hierarchy{}, Actors: actors.Stub{Appeals: appeals}}
+		st := start(t, consul)
+		for i := 0; i < 3; i++ {
+			tr, err := turn.Advance(st, cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			st = tr.Next
+		}
+		to := st.Period - 1
+		g, err := powergraph.Build(cfg.Strategy, st.Corpus, st.Facts, to)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := Build(Input{Journal: st.Journal, From: to - 2, To: to, Graph: g, Corpus: st.Corpus, Preset: Preset{Silent: 3}})
+		got := map[string]bool{}
+		for _, f := range out.Findings {
+			got[f.Failure+" "+f.Place] = true
+		}
+		return got
+	}
+	if !run(false)["unused-review-path consul -> praetor"] {
+		t.Fatal("nobody appealed: the path is unused")
+	}
+	if run(true)["unused-review-path consul -> praetor"] {
+		t.Fatal("an appeal uses the path")
+	}
+}

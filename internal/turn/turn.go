@@ -35,6 +35,7 @@ type Participants interface {
 	Petitions(q competence.Query, people, statuses []string, exists func(person, matter string) bool) []actors.Request
 	Propose(c cases.Case, q competence.Query) cases.Proposal
 	Veto(c cases.Case) bool
+	Appeal(c cases.Case) bool
 	Attempts(now period.Period) []actors.Attempt
 }
 
@@ -199,6 +200,25 @@ func Advance(s State, cfg Config) (Transition, error) {
 		}
 		office := p.firstCompetent(offices, "intercessio")
 		c, fs, es := cases.Veto(p.context(), c, p.occupant(office), office)
+		p.cases[i] = c
+		p.add(fs, es)
+	}
+
+	// review
+	for i, c := range p.cases {
+		if (c.Status != cases.Decided && c.Status != cases.Refused) || c.DecidedAt != p.now || c.Reviewed || !cfg.Actors.Appeal(c) {
+			continue
+		}
+		actor, office := p.reviewer(c)
+		if actor == "" {
+			e := p.entry(journal.Review, c.Person, c.Office, c.Person+" "+c.Matter, "no-reviewer", "")
+			e.Case = c.ID
+			p.add(nil, []journal.Entry{e})
+			c.Reviewed = true
+			p.cases[i] = c
+			continue
+		}
+		c, fs, es := cases.Review(p.context(), c, actor, office, cfg.Actors.Propose)
 		p.cases[i] = c
 		p.add(fs, es)
 	}
@@ -368,6 +388,37 @@ func (p *period_) firstCompetent(offices []string, kind string) string {
 		}
 	}
 	return ""
+}
+
+// reviewer finds a held office declared to review the deciding office, with a
+// holder who is not the person the case is about.
+func (p *period_) reviewer(c cases.Case) (actor, office string) {
+	stored := p.corpus.DeclarationsAt(p.now)
+	for _, f := range p.visible() {
+		a := deduction.Atom{Pred: f.Pred}
+		for _, v := range f.Args {
+			a.Args = append(a.Args, deduction.Value{Const: v.Const, Num: v.Num, IsNum: v.IsNum})
+		}
+		stored = append(stored, a)
+	}
+	var offices []string
+	for _, a := range stored {
+		if a.Pred == "reviews" && len(a.Args) == 2 && a.Args[1].Const == c.Office {
+			offices = append(offices, a.Args[0].Const)
+		}
+	}
+	sort.Strings(offices)
+	for _, o := range offices {
+		if v, _ := competence.Check(p.res.Query, o, "review"); v != competence.Allowed {
+			continue
+		}
+		for _, h := range p.holders(o) {
+			if h != c.Person {
+				return h, o
+			}
+		}
+	}
+	return "", ""
 }
 
 // decider picks who decides a case. Nobody decides their own case while

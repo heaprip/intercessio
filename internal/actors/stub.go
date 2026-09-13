@@ -36,6 +36,13 @@ type Stub struct {
 	// VetoGrantsTo lists persons whose grants the tribune stops.
 	VetoGrantsTo map[string]bool
 	Script       []Attempt
+	// Appeals makes every refused or convicted person appeal once.
+	Appeals bool
+}
+
+// Appeal says whether the person appeals the decision of this period.
+func (s Stub) Appeal(c cases.Case) bool {
+	return s.Appeals && !c.Reviewed && (c.Outcome == "refuse" || c.Outcome == "guilty")
 }
 
 // Candidates are the petitions the law makes worth filing: a status the person

@@ -56,6 +56,7 @@ type Case struct {
 	Outcome   string
 	DecidedAt period.Period
 	Status    Status
+	Reviewed  bool // appealed once already
 }
 
 // ActionKind is the kind of action deciding this case requires.
@@ -168,6 +169,42 @@ func Veto(x Context, c Case, actor, office string) (Case, []facts.Fact, []journa
 	c.Status = Vetoed
 	f := fact("v_"+c.Decision, "vetoes", x.Now, actor, actor, c.Decision)
 	return c, []facts.Fact{f}, []journal.Entry{x.entry(journal.Intercessio, c, actor, office, c.Decision, "stopped", rule, journal.ByStub)}
+}
+
+// Review decides an appealed case anew by the reviewing office. The same
+// outcome upholds the decision; another one replaces it before it enters into
+// force.
+func Review(x Context, c Case, actor, office string, propose Propose) (Case, []facts.Fact, []journal.Entry) {
+	verdict, rule := competence.Check(x.Query, office, "review")
+	if verdict != competence.Allowed {
+		return c, nil, []journal.Entry{x.entry(journal.UltraVires, c, actor, office, "review", string(verdict), rule, journal.ByRule)}
+	}
+	c.Reviewed = true
+	p := propose(c, x.Query)
+	if p.Unserved != "" {
+		e := x.entry(journal.Unserved, c, actor, office, "review "+c.ID, p.Unserved, p.Rule, journal.ByRule)
+		e.Model, e.Call = p.Model, p.Call
+		return c, nil, []journal.Entry{e}
+	}
+	e := x.entry(journal.Review, c, actor, office, c.Person+" "+c.Matter, "upheld "+c.Outcome, p.Rule, p.Decider)
+	e.Model, e.Call, e.Basis.Rules = p.Model, p.Call, p.Rules
+	if p.Outcome == c.Outcome {
+		return c, nil, []journal.Entry{e}
+	}
+	e.Outcome = "changed to " + p.Outcome
+	c.Outcome, c.DecidedAt = p.Outcome, x.Now
+	switch p.Outcome {
+	case "non-liquet":
+		c.Status, c.Decision = NonLiquet, ""
+		return c, nil, []journal.Entry{e}
+	case "refuse", "acquit":
+		c.Status = Refused
+	default:
+		c.Status = Decided
+	}
+	c.Decision = "rv_" + c.ID
+	f := fact(c.Decision, "decision", x.Now, actor, c.Decision, c.ID, p.Outcome, office, x.Now)
+	return c, []facts.Fact{f}, []journal.Entry{e}
 }
 
 // Finalize puts a decision made in an earlier period into force. Its effects

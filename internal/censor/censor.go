@@ -86,6 +86,7 @@ func Build(in Input) Stand {
 	decided, nonLiquet, expired, amendments := 0, 0, 0, 0
 	var concerned []string
 	applied := map[string]bool{}
+	reviewedBy := map[string]bool{}
 	for _, e := range in.Journal.Entries {
 		if e.Period < in.From || e.Period > in.To {
 			continue
@@ -104,6 +105,8 @@ func Build(in Input) Stand {
 			}
 		case journal.Expired:
 			expired++
+		case journal.Review:
+			reviewedBy[e.Office] = true
 		case journal.Amendment:
 			amendments++
 		}
@@ -141,6 +144,7 @@ func Build(in Input) Stand {
 	}
 	if in.Preset.Silent > 0 && int(in.To-in.From)+1 >= in.Preset.Silent {
 		st.Findings = append(st.Findings, silentNorms(in, applied)...)
+		st.Findings = append(st.Findings, unusedReview(in, reviewedBy)...)
 	}
 	return st
 }
@@ -169,6 +173,25 @@ func silentNorms(in Input, applied map[string]bool) []linter.Finding {
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Place < out[j].Place })
+	return out
+}
+
+// unusedReview: a path of review in effect at To that nobody took in the
+// window. Formally correct and never used — the second silent failure.
+func unusedReview(in Input, reviewedBy map[string]bool) []linter.Finding {
+	if in.Graph == nil {
+		return nil
+	}
+	var out []linter.Finding
+	for _, e := range in.Graph.Find(powergraph.Restrains, "", "") {
+		if e.Via != powergraph.ReviewKind || !e.Active || reviewedBy[e.From] {
+			continue
+		}
+		out = append(out, linter.Finding{
+			Failure: "unused-review-path", Code: "unused-review-path", Channel: linter.Journal, Place: e.From + " -> " + e.To,
+			Message: fmt.Sprintf("%s may review %s, and nobody appealed in periods %d..%d", e.From, e.To, in.From, in.To),
+		})
+	}
 	return out
 }
 

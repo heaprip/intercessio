@@ -37,6 +37,9 @@ const (
 	Deferred Kind = "deferred"
 	// Recusal: the case concerns its decider and passed to another holder.
 	Recusal Kind = "recusal"
+	// Review: a decision was appealed and reviewed; the outcome says upheld,
+	// changed or no-reviewer.
+	Review Kind = "review"
 	// Conflict: the case concerns its decider and nobody else could take it.
 	Conflict      Kind = "conflict"
 	PeriodSummary Kind = "period-summary"

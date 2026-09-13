@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/heaprip/intercessio/internal/actors"
 	"github.com/heaprip/intercessio/internal/corpus"
 	"github.com/heaprip/intercessio/internal/deduction"
 	"github.com/heaprip/intercessio/internal/journal"
@@ -162,5 +163,38 @@ func TestAdvance_RecusalToColleague(t *testing.T) {
 	if !has(s.Journal, journal.Recusal, 31, "case="+id) || has(s.Journal, journal.Conflict, 31, "case="+id) {
 		dump(t, s.Journal)
 		t.Fatal("want a recusal and no conflict")
+	}
+}
+
+// consulReviews adds a held consul who reviews the praetor.
+func consulReviews(w map[string]any) {
+	w["offices"] = append(w["offices"].([]any), map[string]any{"id": "consul", "competences": []any{"review"}, "term": 1, "reviews": []any{"praetor"}})
+	w["people"] = append(w["people"].([]any), map[string]any{"id": "quintus", "status": "civis"})
+	w["facts"] = append(w["facts"].([]any),
+		map[string]any{"id": "occ_quintus", "p": "occupies", "a": []any{"quintus", "consul", 1, 99}, "by": "scenario"},
+		map[string]any{"id": "ex_quintus", "p": "exempt", "a": []any{"ex_quintus", "quintus", "munus"}, "by": "scenario"},
+		map[string]any{"id": "ex_quintus_in_force", "p": "in_force", "a": []any{"ex_quintus", 1}, "by": "scenario"},
+	)
+}
+
+// A convicted person appeals; the consul reviews by the same law and upholds,
+// and the conviction still enters into force.
+func TestAdvance_AppealIsReviewed(t *testing.T) {
+	cfg := base
+	cfg.Actors = actors.Stub{Script: script, Appeals: true}
+	s := play(t, start(t, consulReviews), cfg, 2)
+	if !has(s.Journal, journal.Review, 30, "actor=quintus office=consul case=ch30_1 subject=gaius munus outcome=upheld guilty") {
+		dump(t, s.Journal)
+		t.Fatal("gaius's appeal was not reviewed by the consul")
+	}
+	if !has(s.Journal, journal.Finalization, 31, "outcome=guilty") {
+		dump(t, s.Journal)
+		t.Fatal("an upheld conviction enters into force")
+	}
+
+	s = play(t, start(t, nil), cfg, 1)
+	if !has(s.Journal, journal.Review, 30, "outcome=no-reviewer") {
+		dump(t, s.Journal)
+		t.Fatal("an appeal with nobody to review it must be recorded")
 	}
 }
