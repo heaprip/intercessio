@@ -429,3 +429,68 @@ func TestLint_NormNobodyApplies(t *testing.T) {
 	out = lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
 	mustFind(t, out, "norm-nobody-applies", "munus")
 }
+
+func dropRules(ids ...string) func(world) {
+	return func(w world) {
+		drop := map[string]bool{}
+		for _, id := range ids {
+			drop[id] = true
+		}
+		for _, n := range w["norms"].([]any) {
+			norm := n.(map[string]any)
+			var kept []any
+			for _, r := range norm["rules"].([]any) {
+				if !drop[r.(map[string]any)["id"].(string)] {
+					kept = append(kept, r)
+				}
+			}
+			norm["rules"] = kept
+		}
+		var defeats []any
+		for _, d := range w["defeats"].([]any) {
+			m := d.(map[string]any)
+			if !drop[m["over"].(string)] && !drop[m["under"].(string)] {
+				defeats = append(defeats, d)
+			}
+		}
+		w["defeats"] = defeats
+	}
+}
+
+// genericRepair makes the penalty follow a conviction for any duty, the penalty
+// itself included.
+func genericRepair(w world) {
+	for _, n := range w["norms"].([]any) {
+		for _, r := range n.(map[string]any)["rules"].([]any) {
+			rule := r.(map[string]any)
+			if rule["id"] != "r_repair" {
+				continue
+			}
+			rule["head"].(map[string]any)["a"].([]any)[3] = "K"
+			for _, l := range rule["body"].([]any) {
+				if lit := l.(map[string]any); lit["p"] == "petition" {
+					lit["a"].([]any)[2] = "K"
+				}
+			}
+		}
+	}
+}
+
+// A record of offense ends every chain in the casus; without it and without the
+// penalty a conviction leads to nothing, and with a penalty for every duty the
+// penalty never ends.
+func TestLint_DutyConsequences(t *testing.T) {
+	s, rep := loadCasus(t, "citizenship", nil)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustNotFind(t, out, "duty-without-consequence", "")
+	mustNotFind(t, out, "ladder-without-last-step", "")
+
+	s, rep = loadCasus(t, "citizenship", dropRules("r_offense", "r_repair", "r_c2", "r_c3"))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustFind(t, out, "duty-without-consequence", "munus")
+
+	s, rep = loadCasus(t, "citizenship", both(dropRules("r_offense", "r_c2", "r_c3"), genericRepair))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustFind(t, out, "ladder-without-last-step", "penalty")
+	mustNotFind(t, out, "duty-without-consequence", "")
+}

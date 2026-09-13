@@ -168,6 +168,7 @@ func Lint(in Input) (*Report, error) {
 	rep.competenceGap(in)
 	rep.judgeInOwnCause(in)
 	rep.normNobodyApplies(in)
+	rep.dutyConsequences(in)
 	rep.circumventable()
 	rep.closedEligibility()
 
@@ -336,6 +337,125 @@ func (r *Report) reviewCycle() {
 		reported[key] = true
 		r.Findings = append(r.Findings, Finding{Failure: "review-cycle", Code: "review-cycle", Channel: Linter, Place: members[0],
 			Message: "review comes back to where it started: " + strings.Join(cycle, " -> ")})
+	}
+}
+
+// consequence is what a conviction for a kind of duty leads to: another duty,
+// or a terminal act of the polity such as a record of offense.
+type consequence struct {
+	next     string // kind of the secondary duty; empty for a terminal act
+	terminal bool
+	rule     string
+}
+
+// dutyConsequences follows convictions. A conviction is a decision with the
+// outcome guilty in a rule body, tied to the kind through a charge or a
+// petition. A kind whose conviction leads nowhere is duty-without-consequence;
+// kinds whose consequences circle through duties and never reach a terminal act
+// are a ladder without its last step.
+func (r *Report) dutyConsequences(in Input) {
+	rules := in.Corpus.At(in.Now)
+	kinds := map[string]bool{}
+	for _, a := range powergraph.Stored(in.Corpus, in.Facts, in.Now) {
+		if a.Pred == "duty_bundle" && len(a.Args) == 2 {
+			kinds[a.Args[1].Const] = true
+		}
+	}
+	for _, rule := range rules {
+		if rule.Head.Pred == "duty" && !rule.Head.Neg && len(rule.Head.Args) > 2 && rule.Head.Args[2].Kind == deduction.Const {
+			kinds[rule.Head.Args[2].Name] = true
+		}
+	}
+	specific := map[string][]consequence{}
+	var generic []consequence // matter is a variable: applies to every kind
+	genericSelf := map[int]bool{}
+	for _, rule := range rules {
+		convicted := false
+		var matter *deduction.Term
+		for _, l := range rule.Body {
+			if l.Pred == "decision" && len(l.Args) > 2 && l.Args[2].Kind == deduction.Const && l.Args[2].Name == "guilty" {
+				convicted = true
+			}
+			if (l.Pred == "charge" || l.Pred == "petition") && len(l.Args) > 2 {
+				m := l.Args[2]
+				matter = &m
+			}
+		}
+		if !convicted || matter == nil || rule.Head.Neg {
+			continue
+		}
+		c := consequence{terminal: true, rule: rule.ID}
+		self := false
+		if rule.Head.Pred == "duty" && len(rule.Head.Args) > 2 {
+			c.terminal = false
+			switch t := rule.Head.Args[2]; {
+			case t.Kind == deduction.Const:
+				c.next = t.Name
+			case t.Kind == deduction.Var && matter.Kind == deduction.Var && t.Name == matter.Name:
+				self = true
+			default:
+				continue
+			}
+		}
+		if matter.Kind == deduction.Const {
+			specific[matter.Name] = append(specific[matter.Name], c)
+		} else {
+			if self {
+				genericSelf[len(generic)] = true
+			}
+			generic = append(generic, c)
+		}
+	}
+	of := func(k string) []consequence {
+		out := append([]consequence{}, specific[k]...)
+		for i, g := range generic {
+			if genericSelf[i] {
+				g.next = k
+			}
+			out = append(out, g)
+		}
+		return out
+	}
+	var names []string
+	for k := range kinds {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	for _, k := range names {
+		cs := of(k)
+		if len(cs) == 0 {
+			r.Findings = append(r.Findings, Finding{Failure: "duty-without-consequence", Code: "duty-without-consequence", Channel: Linter, Place: k,
+				Message: fmt.Sprintf("a conviction for %s leads to nothing: no rule takes a guilty decision on it", k)})
+		}
+	}
+	for _, k := range names {
+		// is k on a cycle of duty consequences that never reaches a terminal act?
+		seen := map[string]bool{}
+		terminal, cycle := false, false
+		var path []string
+		var walk func(at string)
+		walk = func(at string) {
+			if seen[at] {
+				return
+			}
+			seen[at] = true
+			for _, c := range of(at) {
+				if c.terminal {
+					terminal = true
+					continue
+				}
+				if c.next == k {
+					cycle = true
+					path = appendNew(path, c.rule)
+				}
+				walk(c.next)
+			}
+		}
+		walk(k)
+		if cycle && !terminal {
+			r.Findings = append(r.Findings, Finding{Failure: "ladder-without-last-step", Code: "ladder-without-last-step", Channel: Linter, Place: k,
+				Message: fmt.Sprintf("every consequence of violating %s is another duty, and the chain comes back through %s without an act of the polity", k, strings.Join(path, ", "))})
+		}
 	}
 }
 
