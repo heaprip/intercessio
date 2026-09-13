@@ -14,6 +14,7 @@ indeterminacy              linter  r_registered, r_revoke r_registered and r_rev
 indeterminacy              linter  r_registered, r_strip  r_registered and r_strip conclude opposite status with no declared order
 indeterminacy              linter  r_revoke, r_status     r_revoke and r_status conclude opposite status with no declared order
 indeterminacy              linter  r_status, r_strip      r_status and r_strip conclude opposite status with no declared order
+norm-nobody-applies        linter  munus                  violations are concluded by r_viol_m, r_viol_a, and no office in effect may inspect with capacity
 retroactivity              recount C1                     enacted in 35, applies from 28; recount over 28..34 changes 4 conclusions [marcus]
 review-dead-end            linter  censor                 no office in effect can stop censor (establish_fact)
 review-dead-end            linter  praetor                no office in effect can stop praetor (grant_status); declared: tribunus, vacant

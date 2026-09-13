@@ -410,3 +410,22 @@ func TestLint_JudgeInOwnCause(t *testing.T) {
 	out = lint(t, s, rep, entitlement.Hierarchy{}, 31, nil, s.Corpus)
 	mustNotFind(t, out, "judge-in-own-cause", "")
 }
+
+// A duty whose violations nobody may look for applies to nobody: the quaestor
+// with capacity is the only way a violation becomes a case.
+func TestLint_NormNobodyApplies(t *testing.T) {
+	s, rep := loadCasus(t, "playable", nil)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 30, nil, s.Corpus)
+	mustNotFind(t, out, "norm-nobody-applies", "")
+
+	s, rep = loadCasus(t, "playable", setOffice("quaestor", "capacity", 0))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 30, nil, s.Corpus)
+	f := mustFind(t, out, "norm-nobody-applies", "munus")
+	if !strings.Contains(f.Message, "r_viol_m") {
+		t.Fatalf("must name the rules that conclude violations: %s", f)
+	}
+
+	s, rep = loadCasus(t, "citizenship", nil)
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 35, nil, s.Corpus)
+	mustFind(t, out, "norm-nobody-applies", "munus")
+}

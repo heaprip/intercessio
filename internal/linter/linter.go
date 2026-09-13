@@ -167,6 +167,7 @@ func Lint(in Input) (*Report, error) {
 	rep.reviewCycle()
 	rep.competenceGap(in)
 	rep.judgeInOwnCause(in)
+	rep.normNobodyApplies(in)
 	rep.circumventable()
 	rep.closedEligibility()
 
@@ -336,6 +337,43 @@ func (r *Report) reviewCycle() {
 		r.Findings = append(r.Findings, Finding{Failure: "review-cycle", Code: "review-cycle", Channel: Linter, Place: members[0],
 			Message: "review comes back to where it started: " + strings.Join(cycle, " -> ")})
 	}
+}
+
+// normNobodyApplies: the corpus derives violations of duties, and no office in
+// effect may inspect with a capacity above zero. In the prototype inspection is
+// the only way a violation becomes a case: there is no private complaint yet.
+func (r *Report) normNobodyApplies(in Input) {
+	var concluding []string
+	for _, rule := range in.Corpus.At(in.Now) {
+		if rule.Head.Pred == "violated" && !rule.Head.Neg {
+			concluding = appendNew(concluding, rule.ID)
+		}
+	}
+	if len(concluding) == 0 {
+		return
+	}
+	capacity := map[string]int{}
+	var kinds []string
+	for _, a := range powergraph.Stored(in.Corpus, in.Facts, in.Now) {
+		switch {
+		case a.Pred == "capacity" && len(a.Args) == 2:
+			capacity[a.Args[0].Const] += a.Args[1].Num
+		case a.Pred == "duty_bundle" && len(a.Args) == 2:
+			kinds = appendNew(kinds, a.Args[1].Const)
+		}
+	}
+	for _, e := range r.Graph.Find(powergraph.Competence, "", "inspect") {
+		if len(r.Graph.Office(e.From).Holders) > 0 && capacity[e.From] > 0 {
+			return
+		}
+	}
+	sort.Strings(kinds)
+	place := "inspect"
+	if len(kinds) > 0 {
+		place = strings.Join(kinds, ", ")
+	}
+	r.Findings = append(r.Findings, Finding{Failure: "norm-nobody-applies", Code: "norm-nobody-applies", Channel: Linter, Place: place,
+		Message: fmt.Sprintf("violations are concluded by %s, and no office in effect may inspect with capacity", strings.Join(concluding, ", "))})
 }
 
 // judgeInOwnCause: a kind of decision that a single person in effect may take.
