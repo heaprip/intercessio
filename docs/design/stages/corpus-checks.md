@@ -45,9 +45,9 @@ tags:
 провалов каталога (`retroactivity`, `taking-of-vested`,
 `underdetermined-condition`, `dead-conclusion`, `competence-gap`,
 `review-dead-end`, `review-cycle`, `circumventable-condition`, `closed-eligibility` и частично
-`indeterminacy` и `empty-right`) и цикл вытеснения из загрузчика. Не сделаны
-`delegated-discretion`, `duty-without-consequence`, `ladder-without-last-step`,
-`impossible-duty`, `dangling-succession`; `norm-nobody-applies` — частично, только
+`indeterminacy` и `empty-right`) и цикл вытеснения из загрузчика. Сделаны также
+`duty-without-consequence` и `ladder-without-last-step`. Не сделаны
+`delegated-discretion`, `impossible-duty`, `dangling-succession`; `norm-nobody-applies` — частично, только
 должностной путь.
 
 Демонстрация — `TestLint_RetroactiveAmendmentOfC1`, эталон
