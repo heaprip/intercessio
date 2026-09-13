@@ -47,7 +47,8 @@ tags:
 `review-dead-end`, `review-cycle`, `circumventable-condition`, `closed-eligibility` и частично
 `indeterminacy` и `empty-right`) и цикл вытеснения из загрузчика. Не сделаны
 `delegated-discretion`, `duty-without-consequence`, `ladder-without-last-step`,
-`norm-nobody-applies`, `impossible-duty`, `dangling-succession`.
+`impossible-duty`, `dangling-succession`; `norm-nobody-applies` — частично, только
+должностной путь.
 
 Демонстрация — `TestLint_RetroactiveAmendmentOfC1`, эталон
 `internal/linter/testdata/citizenship-c1-retroactive.golden`: правка в периоде 35 с
