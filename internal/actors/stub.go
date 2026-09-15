@@ -29,6 +29,10 @@ type Attempt struct {
 	Actor  string
 	Office string
 	Kind   string
+	// Subject and Fact make the attempt an act: Fact is the act predicate and
+	// its arguments after the act id, e.g. adrogatio, clodius, fonteius.
+	Subject string
+	Fact    []string
 }
 
 // Stub is the deterministic participant.

@@ -170,6 +170,7 @@ func Lint(in Input) (*Report, error) {
 	rep.normNobodyApplies(in)
 	rep.dutyConsequences(in)
 	rep.circumventable()
+	rep.uncheckedAct(in)
 	rep.closedEligibility()
 
 	sort.SliceStable(rep.Findings, func(i, j int) bool {
@@ -601,6 +602,33 @@ func (r *Report) circumventable() {
 			Message: fmt.Sprintf("admission to %s rests on %s, an act of %s that no office in effect can stop: %s",
 				strings.Join(opened, ", "), e.Via, e.From, powergraph.PathString(e.Path)),
 			People: r.Graph.Office(e.From).Holders})
+	}
+}
+
+// uncheckedAct: a kind of act that changes a status or admission, that no kind
+// of action can stop, performed by an office nothing in effect restrains.
+func (r *Report) uncheckedAct(in Input) {
+	rules := in.Corpus.At(in.Now)
+	changes := map[string]bool{}
+	for _, target := range []string{"status", "eligible"} {
+		for pred := range deduction.Supports(rules, target) {
+			changes[pred] = true
+		}
+	}
+	for _, act := range in.Corpus.Acts {
+		if len(act.StoppedBy) > 0 || !changes[act.Predicate] {
+			continue
+		}
+		for _, k := range act.Kinds {
+			for _, e := range r.Graph.Find(powergraph.Competence, "", k) {
+				if r.restrained(e.From) {
+					continue
+				}
+				r.Findings = append(r.Findings, Finding{Failure: "unchecked-act", Code: "unchecked-act", Channel: Linter, Place: k + " by " + e.From,
+					Message: fmt.Sprintf("%s changes what status or admission rests on, no kind of action stops it, and nothing in effect restrains %s", act.Predicate, e.From),
+					People:  r.Graph.Office(e.From).Holders})
+			}
+		}
 	}
 }
 

@@ -7,6 +7,7 @@ empty-right                linter  ius_suffragii          right ius_suffragii en
 review-dead-end            linter  censor                 no office in effect can stop censor (adrogatio, establish_fact)
 review-dead-end            linter  consul                 no office in effect can stop consul (execute)
 review-dead-end            linter  tribunus               no office in effect can stop tribunus (intercessio) [clodius]
+unchecked-act              linter  adrogatio by censor    adrogatio changes what status or admission rests on, no kind of action stops it, and nothing in effect restrains censor
 
 power graph, period 13
 office censor     [vacant]         may adrogatio, establish_fact

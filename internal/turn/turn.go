@@ -24,6 +24,7 @@ type State struct {
 	Corpus  corpus.Version
 	Facts   []facts.Fact
 	Cases   []cases.Case
+	Acts    []cases.Act
 	Journal journal.Journal
 	Seed    int64
 	// Queue holds grievances that did not fit an earlier period's budget.
@@ -64,6 +65,7 @@ type period_ struct {
 	corpus  corpus.Version
 	facts   []facts.Fact
 	cases   []cases.Case
+	acts    []cases.Act
 	queue   []Grievance
 	added   []facts.Fact
 	entries []journal.Entry
@@ -77,7 +79,7 @@ func Advance(s State, cfg Config) (Transition, error) {
 		cfg.Term = 3
 	}
 	p := &period_{s: s, cfg: cfg, now: s.Period, corpus: s.Corpus, facts: append([]facts.Fact{}, s.Facts...),
-		cases: append([]cases.Case{}, s.Cases...), queue: append([]Grievance{}, s.Queue...)}
+		cases: append([]cases.Case{}, s.Cases...), acts: append([]cases.Act{}, s.Acts...), queue: append([]Grievance{}, s.Queue...)}
 
 	// amendment
 	if cfg.Auctor != nil {
@@ -94,6 +96,11 @@ func Advance(s State, cfg Config) (Transition, error) {
 		c, es2 := cases.Expire(x, c)
 		p.cases[i] = c
 		p.add(fs, append(es, es2...))
+	}
+	for i, a := range p.acts {
+		a, fs, es := cases.FinalizeAct(x, a)
+		p.acts[i] = a
+		p.add(fs, es)
 	}
 	if err := p.resolve(); err != nil {
 		return Transition{}, err
@@ -160,10 +167,19 @@ func Advance(s State, cfg Config) (Transition, error) {
 		return Transition{}, err
 	}
 
-	// scripted attempts
-	for _, a := range cfg.Actors.Attempts(p.now) {
+	// scripted attempts: an allowed attempt with a fact is an act
+	for i, a := range cfg.Actors.Attempts(p.now) {
 		if v, rule := competence.Check(p.res.Query, a.Office, a.Kind); v != competence.Allowed {
 			p.add(nil, []journal.Entry{p.entry(journal.UltraVires, a.Actor, a.Office, a.Kind, string(v), rule)})
+			continue
+		}
+		if len(a.Fact) == 0 {
+			continue
+		}
+		act, fs, es, ok := cases.Perform(p.context(), fmt.Sprintf("act%d_%d", p.now, i+1), a.Actor, a.Office, a.Kind, a.Subject, a.Fact, p.holders(a.Office), p.quorum(a.Office))
+		p.add(fs, es)
+		if ok {
+			p.acts = append(p.acts, act)
 		}
 	}
 
@@ -229,7 +245,7 @@ func Advance(s State, cfg Config) (Transition, error) {
 		Subject: fmt.Sprintf("violations=%d checked=%d bearers=%d cases=%d queue=%d", len(violations), checked, len(bearers), len(p.cases), len(p.queue)),
 	}})
 
-	next := State{Period: p.now + 1, Corpus: p.corpus, Facts: p.facts, Cases: p.cases, Journal: s.Journal.Append(p.entries...), Seed: s.Seed, Queue: p.queue}
+	next := State{Period: p.now + 1, Corpus: p.corpus, Facts: p.facts, Cases: p.cases, Journal: s.Journal.Append(p.entries...), Seed: s.Seed, Queue: p.queue, Acts: p.acts}
 	return Transition{Next: next, Facts: p.added, Entries: next.Journal.Entries[len(s.Journal.Entries):]}, nil
 }
 
@@ -470,6 +486,20 @@ func (p *period_) holders(office string) []string {
 	}
 	sort.Strings(who)
 	return who
+}
+
+func (p *period_) quorum(office string) int {
+	for _, a := range p.corpus.DeclarationsAt(p.now) {
+		if a.Pred == "quorum" && len(a.Args) == 2 && a.Args[0].Const == office {
+			return a.Args[1].Num
+		}
+	}
+	for _, f := range p.visible() {
+		if f.Pred == "quorum" && len(f.Args) == 2 && f.Args[0].Const == office {
+			return f.Args[1].Num
+		}
+	}
+	return 0
 }
 
 func (p *period_) capacity(office string) (int, bool) {

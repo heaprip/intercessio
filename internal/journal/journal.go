@@ -40,6 +40,10 @@ const (
 	// Review: a decision was appealed and reviewed; the outcome says upheld,
 	// changed or no-reviewer.
 	Review Kind = "review"
+	// Act: an office performed an act outside a case.
+	Act Kind = "act"
+	// NoQuorum: an act needed more concurring holders than the office had.
+	NoQuorum Kind = "no-quorum"
 	// Conflict: the case concerns its decider and nobody else could take it.
 	Conflict      Kind = "conflict"
 	PeriodSummary Kind = "period-summary"

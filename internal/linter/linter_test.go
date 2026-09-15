@@ -494,3 +494,22 @@ func TestLint_DutyConsequences(t *testing.T) {
 	mustFind(t, out, "ladder-without-last-step", "penalty")
 	mustNotFind(t, out, "duty-without-consequence", "")
 }
+
+// Adoption changes status, no kind of action stops it, and a lone censor is
+// restrained by nothing: an unchecked act. Two concurring censors restrain it.
+func TestLint_UncheckedAct(t *testing.T) {
+	s, rep := loadCasus(t, "office-eligibility", nil)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustFind(t, out, "unchecked-act", "adrogatio by censor")
+	mustNotFind(t, out, "unchecked-act", "grant_status by praetor")
+
+	s, rep = loadCasus(t, "office-eligibility", func(w world) {
+		setOffice("censor", "quorum", 2)(w)
+		w["facts"] = append(w["facts"].([]any),
+			map[string]any{"id": "occ_c1", "p": "occupies", "a": []any{"fonteius", "censor", 13, 14}, "by": "scenario", "period": 13},
+			map[string]any{"id": "occ_c2", "p": "occupies", "a": []any{"clodius", "censor", 13, 14}, "by": "scenario", "period": 13},
+		)
+	})
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustNotFind(t, out, "unchecked-act", "")
+}

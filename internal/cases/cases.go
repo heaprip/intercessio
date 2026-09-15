@@ -242,3 +242,70 @@ func Sample(violations []deduction.Atom, capacity int, seed int64, now period.Pe
 	}
 	return v
 }
+
+// Act is a decision without a case: an office changes a status, a duty or an
+// office directly, within its competence. It enters into force in the next
+// period, like a decision.
+type Act struct {
+	ID          string
+	Kind        string
+	Office      string
+	Actor       string
+	Subject     string
+	Predicate   string
+	Args        []string
+	PerformedAt period.Period
+	Status      Status // Decided when performed, Final in force
+}
+
+// Perform checks the office's competence and the quorum of its holders, then
+// records the act: performed/4, the act fact itself and, for a collegial office,
+// concurrence/2. Holders are the office's holders in the period.
+func Perform(x Context, id, actor, office, kind, subject string, fact []string, holders []string, quorum int) (Act, []facts.Fact, []journal.Entry, bool) {
+	a := Act{ID: id, Kind: kind, Office: office, Actor: actor, Subject: subject, PerformedAt: x.Now}
+	entry := func(k journal.Kind, outcome, rule string) journal.Entry {
+		e := x.entry(k, Case{ID: id}, actor, office, kind+" "+subject, outcome, rule, journal.ByStub)
+		return e
+	}
+	if verdict, rule := competence.Check(x.Query, office, kind); verdict != competence.Allowed {
+		e := entry(journal.UltraVires, string(verdict), rule)
+		e.Subject, e.Decider = kind, journal.ByRule
+		return a, nil, []journal.Entry{e}, false
+	}
+	if quorum > 1 && len(holders) < quorum {
+		return a, nil, []journal.Entry{entry(journal.NoQuorum, fmt.Sprintf("%d of %d holders", len(holders), quorum), "")}, false
+	}
+	if len(fact) == 0 {
+		return a, nil, nil, false
+	}
+	a.Predicate, a.Args, a.Status = fact[0], fact[1:], Decided
+	args := []any{id}
+	for _, v := range a.Args {
+		args = append(args, v)
+	}
+	fs := []facts.Fact{
+		fact_(id+"_performed", "performed", x.Now, actor, id, kind, office, subject),
+		fact_(id, a.Predicate, x.Now, actor, args...),
+	}
+	if quorum > 1 {
+		fs = append(fs, fact_(id+"_concurrence", "concurrence", x.Now, actor, id, office))
+	}
+	return a, fs, []journal.Entry{entry(journal.Act, strings.Join(fact, " "), "")}, true
+}
+
+func fact_(id, pred string, now period.Period, by string, args ...any) facts.Fact {
+	f := fact(id, pred, now, by, args...)
+	f.Prov.Source = "act"
+	return f
+}
+
+// FinalizeAct puts an act performed in an earlier period into force.
+func FinalizeAct(x Context, a Act) (Act, []facts.Fact, []journal.Entry) {
+	if a.Status != Decided || a.PerformedAt >= x.Now {
+		return a, nil, nil
+	}
+	a.Status = Final
+	f := fact("f_"+a.ID, "in_force", x.Now, "case", a.ID, x.Now)
+	e := x.entry(journal.Finalization, Case{ID: a.ID}, "", a.Office, a.ID, a.Kind, "", journal.ByRule)
+	return a, []facts.Fact{f}, []journal.Entry{e}
+}
