@@ -165,6 +165,7 @@ func Lint(in Input) (*Report, error) {
 	rep.Graph = g
 	rep.reviewDeadEnd()
 	rep.reviewCycle()
+	rep.danglingSuccession(in)
 	rep.competenceGap(in)
 	rep.judgeInOwnCause(in)
 	rep.normNobodyApplies(in)
@@ -295,6 +296,51 @@ func (r *Report) reviewDeadEnd() {
 			msg += "; declared: " + strings.Join(vacant, ", ") + ", vacant"
 		}
 		r.Findings = append(r.Findings, Finding{Failure: "review-dead-end", Code: "review-dead-end", Channel: Linter, Place: o.ID, Message: msg, People: o.Holders})
+	}
+}
+
+// danglingSuccession: an office whose chain of "who appoints the appointer"
+// does not end in an office filled by a constitutive act — no method of
+// succession at all, or a chain that circles back, the office filling itself.
+func (r *Report) danglingSuccession(in Input) {
+	appointers := map[string][]string{}
+	constituted := map[string]bool{}
+	for _, a := range powergraph.Stored(in.Corpus, in.Facts, in.Now) {
+		switch {
+		case a.Pred == "appoints" && len(a.Args) == 2:
+			appointers[a.Args[1].Const] = appendNew(appointers[a.Args[1].Const], a.Args[0].Const)
+		case a.Pred == "constituted" && len(a.Args) == 1:
+			constituted[a.Args[0].Const] = true
+		}
+	}
+	var rooted func(o string, seen map[string]bool) bool
+	rooted = func(o string, seen map[string]bool) bool {
+		if constituted[o] {
+			return true
+		}
+		if seen[o] {
+			return false
+		}
+		seen[o] = true
+		for _, up := range appointers[o] {
+			if rooted(up, seen) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, o := range r.Graph.Offices {
+		if rooted(o.ID, map[string]bool{}) {
+			continue
+		}
+		msg := "no method of succession is declared"
+		if ups := appointers[o.ID]; len(ups) > 0 {
+			msg = fmt.Sprintf("appointed by %s, and the chain never reaches an office filled by a constitutive act", strings.Join(ups, ", "))
+			if contains(ups, o.ID) {
+				msg += "; the office fills itself"
+			}
+		}
+		r.Findings = append(r.Findings, Finding{Failure: "dangling-succession", Code: "dangling-succession", Channel: Linter, Place: o.ID, Message: msg, People: o.Holders})
 	}
 }
 

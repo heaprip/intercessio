@@ -87,6 +87,8 @@ func Build(in Input) Stand {
 	var concerned []string
 	applied := map[string]bool{}
 	reviewedBy := map[string]bool{}
+	var usurpers []string
+	var usurped []string
 	for _, e := range in.Journal.Entries {
 		if e.Period < in.From || e.Period > in.To {
 			continue
@@ -107,6 +109,9 @@ func Build(in Input) Stand {
 			expired++
 		case journal.Review:
 			reviewedBy[e.Office] = true
+		case journal.Usurpation:
+			usurpers = append(usurpers, e.Actor)
+			usurped = append(usurped, fmt.Sprintf("%s in %s (%s)", e.Actor, e.Office, e.Subject))
 		case journal.Amendment:
 			amendments++
 		}
@@ -140,6 +145,13 @@ func Build(in Input) Stand {
 			Place:   fmt.Sprintf("periods %d..%d", in.From, in.To),
 			Message: fmt.Sprintf("%d of %d answered cases ended non liquet, above %.2f", nonLiquet, answered, in.Preset.NonLiquet),
 			People:  concerned,
+		})
+	}
+	if len(usurpers) > 0 {
+		sort.Strings(usurpers)
+		st.Findings = append(st.Findings, linter.Finding{
+			Failure: "usurpation", Code: "usurpation", Channel: linter.Journal, Place: fmt.Sprintf("periods %d..%d", in.From, in.To),
+			Message: "held without admission: " + strings.Join(usurped, "; "), People: usurpers,
 		})
 	}
 	if in.Preset.Silent > 0 && int(in.To-in.From)+1 >= in.Preset.Silent {

@@ -1,5 +1,8 @@
 circumventable-condition   linter  eligible               admission to censor, consul, tribunus rests on adrogatio, an act of censor that no office in effect can stop: eligible <-r_elig- holds_right <-r_rights- status <-r_adopt- adrogatio
 closed-eligibility         linter  censor                 an act of the office reopens admission to it: censor -> (adrogatio) censor
+dangling-succession        linter  censor                 no method of succession is declared
+dangling-succession        linter  consul                 no method of succession is declared
+dangling-succession        linter  tribunus               no method of succession is declared [clodius]
 dead-conclusion            linter  valid                  valid is concluded by r_act_ok and consumed by no rule
 empty-right                linter  ius_commercii          right ius_commercii enters no condition
 empty-right                linter  ius_conubii            right ius_conubii enters no condition

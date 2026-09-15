@@ -97,11 +97,33 @@ func Advance(s State, cfg Config) (Transition, error) {
 		p.cases[i] = c
 		p.add(fs, append(es, es2...))
 	}
+	// admission is checked at the moment of taking office: on the slice before
+	// the appointment takes effect, or the new tenure would count against itself
+	if err := p.resolve(); err != nil {
+		return Transition{}, err
+	}
+	var usurpations []journal.Entry
+	for _, a := range p.acts {
+		if a.Status != cases.Decided || a.PerformedAt >= p.now || a.Predicate != "appointment" || len(a.Args) != 4 {
+			continue
+		}
+		person, office := a.Args[0], a.Args[1]
+		if ans := p.res.Query(deduction.A("eligible", person, office)); ans.Outcome != deduction.Proved {
+			outcome := string(ans.Outcome)
+			if ans.Reason != "" {
+				outcome += " " + string(ans.Reason)
+			}
+			e := p.entry(journal.Usurpation, person, office, "appointed by "+a.Actor+" "+a.Office, outcome, "")
+			e.Case = a.ID
+			usurpations = append(usurpations, e)
+		}
+	}
 	for i, a := range p.acts {
 		a, fs, es := cases.FinalizeAct(x, a)
 		p.acts[i] = a
 		p.add(fs, es)
 	}
+	p.add(nil, usurpations)
 	if err := p.resolve(); err != nil {
 		return Transition{}, err
 	}

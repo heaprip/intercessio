@@ -22,6 +22,7 @@
     {"name": "concurrence", "arity": 2, "role": "fact"},
     {"name": "lifts", "arity": 2, "role": "fact"},
     {"name": "charge", "arity": 4, "role": "fact"},
+    {"name": "appointment", "arity": 5, "role": "fact"},
 
     {"name": "bundle", "arity": 2, "role": "declaration"},
     {"name": "duty_bundle", "arity": 2, "role": "declaration"},
@@ -43,6 +44,8 @@
     {"name": "capacity", "arity": 2, "role": "declaration"},
     {"name": "reviews", "arity": 2, "role": "declaration"},
     {"name": "quorum", "arity": 2, "role": "declaration"},
+    {"name": "appoints", "arity": 2, "role": "declaration"},
+    {"name": "constituted", "arity": 1, "role": "declaration"},
 
     {"name": "tenure", "arity": 2, "role": "derived"},
     {"name": "status", "arity": 2, "role": "derived"},
@@ -67,7 +70,7 @@
     {"name": "may_grant", "arity": 3, "role": "output"}
   ],
   "constants": ["maintain", "achieve", "grant", "guilty", "citizenship", "all_free", "a4", "d2", "open", "res_publica", "tenure_confirmed"],
-  "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute", "inspect", "judge", "review"],
+  "action_kinds": ["grant_status", "establish_fact", "veto", "intercessio", "adrogatio", "nota", "lift", "legislate", "adjudicate", "execute", "inspect", "judge", "review", "appoint"],
   "duty_kinds": ["munus", "resign", "decide", "penalty"],
   "acts": [
     {"predicate": "decision", "kinds": ["grant_status", "judge"], "stopped_by": ["intercessio"],
@@ -75,6 +78,7 @@
     {"predicate": "adrogatio", "kinds": ["adrogatio"]},
     {"predicate": "vetoes", "kinds": ["intercessio"]},
     {"predicate": "marks", "kinds": ["nota"]},
-    {"predicate": "lifts", "kinds": ["lift"]}
+    {"predicate": "lifts", "kinds": ["lift"]},
+    {"predicate": "appointment", "kinds": ["appoint"]}
   ]
 }

@@ -112,6 +112,10 @@ type rawScenario struct {
 		Reviews []string `json:"reviews"`
 		// Quorum is how many holders must concur for an act of the office.
 		Quorum *int `json:"quorum"`
+		// AppointedBy lists the offices that appoint to this one; Constituted
+		// marks an office filled by a constitutive act, the root of succession.
+		AppointedBy []string `json:"appointed_by"`
+		Constituted bool     `json:"constituted"`
 	} `json:"offices"`
 	People []struct {
 		ID     string `json:"id"`
@@ -307,6 +311,12 @@ func (l *loader) run(sch rawSchema, raw rawScenario) (*Scenario, error) {
 		}
 		if o.Quorum != nil {
 			gen("quorum", o.ID, *o.Quorum)
+		}
+		for _, x := range o.AppointedBy {
+			gen("appoints", x, o.ID)
+		}
+		if o.Constituted {
+			gen("constituted", o.ID)
 		}
 	}
 	for _, p := range raw.People {

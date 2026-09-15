@@ -42,6 +42,9 @@ const (
 	Review Kind = "review"
 	// Act: an office performed an act outside a case.
 	Act Kind = "act"
+	// Usurpation: a person holds an office by an appointment in force without
+	// being eligible for it.
+	Usurpation Kind = "usurpation"
 	// NoQuorum: an act needed more concurring holders than the office had.
 	NoQuorum Kind = "no-quorum"
 	// Conflict: the case concerns its decider and nobody else could take it.

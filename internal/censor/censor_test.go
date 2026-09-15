@@ -11,6 +11,7 @@ import (
 	"github.com/heaprip/intercessio/internal/corpus"
 	"github.com/heaprip/intercessio/internal/deduction"
 	"github.com/heaprip/intercessio/internal/entitlement"
+	"github.com/heaprip/intercessio/internal/journal"
 	"github.com/heaprip/intercessio/internal/period"
 	"github.com/heaprip/intercessio/internal/powergraph"
 	"github.com/heaprip/intercessio/internal/scenario"
@@ -209,5 +210,14 @@ func TestStand_UnusedReviewPath(t *testing.T) {
 	}
 	if run(true)["unused-review-path consul -> praetor"] {
 		t.Fatal("an appeal uses the path")
+	}
+}
+
+// A usurpation in the journal is a finding with the usurper's name.
+func TestStand_Usurpation(t *testing.T) {
+	j := journal.Journal{}.Append(journal.Entry{Period: 13, Kind: journal.Usurpation, Actor: "clodius", Office: "censor", Subject: "appointed by scipio consul"})
+	out := Build(Input{Journal: j, From: 11, To: 13})
+	if len(out.Findings) != 1 || out.Findings[0].Failure != "usurpation" || out.Findings[0].People[0] != "clodius" {
+		t.Fatalf("usurpation must be found: %v", out.Findings)
 	}
 }

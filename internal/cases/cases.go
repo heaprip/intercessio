@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/heaprip/intercessio/internal/competence"
@@ -281,6 +282,10 @@ func Perform(x Context, id, actor, office, kind, subject string, fact []string, 
 	a.Predicate, a.Args, a.Status = fact[0], fact[1:], Decided
 	args := []any{id}
 	for _, v := range a.Args {
+		if n, err := strconv.Atoi(v); err == nil {
+			args = append(args, n)
+			continue
+		}
 		args = append(args, v)
 	}
 	fs := []facts.Fact{
@@ -305,7 +310,16 @@ func FinalizeAct(x Context, a Act) (Act, []facts.Fact, []journal.Entry) {
 		return a, nil, nil
 	}
 	a.Status = Final
-	f := fact("f_"+a.ID, "in_force", x.Now, "case", a.ID, x.Now)
-	e := x.entry(journal.Finalization, Case{ID: a.ID}, "", a.Office, a.ID, a.Kind, "", journal.ByRule)
-	return a, []facts.Fact{f}, []journal.Entry{e}
+	fs := []facts.Fact{fact("f_"+a.ID, "in_force", x.Now, "case", a.ID, x.Now)}
+	es := []journal.Entry{x.entry(journal.Finalization, Case{ID: a.ID}, "", a.Office, a.ID, a.Kind, "", journal.ByRule)}
+	// execution of an appointment: the person holds the office for the term
+	if a.Predicate == "appointment" && len(a.Args) == 4 {
+		from, err1 := strconv.Atoi(a.Args[2])
+		to, err2 := strconv.Atoi(a.Args[3])
+		if err1 == nil && err2 == nil {
+			fs = append(fs, fact("occ_"+a.ID, "occupies", x.Now, a.Actor, a.Args[0], a.Args[1], from, to))
+			es = append(es, x.entry(journal.Execution, Case{ID: a.ID}, "", a.Office, a.Args[0]+" "+a.Args[1], a.Kind, "", journal.ByRule))
+		}
+	}
+	return a, fs, es
 }

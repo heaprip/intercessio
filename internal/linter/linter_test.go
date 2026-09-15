@@ -513,3 +513,24 @@ func TestLint_UncheckedAct(t *testing.T) {
 	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
 	mustNotFind(t, out, "unchecked-act", "")
 }
+
+// Without declared succession every office dangles; with consul and tribune
+// constituted and the censor appointed by the consul none does; a censor that
+// appoints the censor fills itself.
+func TestLint_DanglingSuccession(t *testing.T) {
+	s, rep := loadCasus(t, "office-eligibility", nil)
+	out := lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustFind(t, out, "dangling-succession", "censor")
+
+	declared := both(setOffice("consul", "constituted", true), setOffice("tribunus", "constituted", true), setOffice("censor", "appointed_by", []any{"consul"}))
+	s, rep = loadCasus(t, "office-eligibility", declared)
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	mustNotFind(t, out, "dangling-succession", "")
+
+	s, rep = loadCasus(t, "office-eligibility", both(declared, setOffice("censor", "appointed_by", []any{"censor"})))
+	out = lint(t, s, rep, entitlement.Hierarchy{}, 13, nil, s.Corpus)
+	f := mustFind(t, out, "dangling-succession", "censor")
+	if !strings.Contains(f.Message, "fills itself") {
+		t.Fatalf("must say the office fills itself: %s", f)
+	}
+}

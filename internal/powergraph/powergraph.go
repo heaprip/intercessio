@@ -29,6 +29,8 @@ const (
 	// Admits: an act of From changes what admission to To rests on. Derived by
 	// walking the rules back from eligible, not declared.
 	Admits EdgeKind = "admits"
+	// Appoints: From gives To its holder.
+	Appoints EdgeKind = "appoints"
 )
 
 // Via values of restraint edges that are not act predicates.
@@ -128,6 +130,15 @@ func Build(s entitlement.Strategy, v corpus.Version, fs []facts.Fact, now period
 		}
 		o := a.Args[0].Const
 		add(Edge{Kind: Restrains, From: o, To: o, Via: Concurrence, Active: len(g.Office(o).Holders) >= 2})
+	}
+
+	for _, a := range stored {
+		if a.Pred != "appoints" || len(a.Args) != 2 {
+			continue
+		}
+		from, to := a.Args[0].Const, a.Args[1].Const
+		add(Edge{Kind: Appoints, From: from, To: to, Via: "appoint",
+			Active: contains(g.Office(from).Competences, "appoint") && len(g.Office(from).Holders) > 0})
 	}
 
 	var guarded []string

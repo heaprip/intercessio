@@ -105,3 +105,59 @@ func TestAdvance_ActNeedsCompetenceAndQuorum(t *testing.T) {
 		t.Fatal("no act, no change of status")
 	}
 }
+
+// succession declares how the offices of the casus are filled: consul and
+// tribune by a constitutive act, the censor by the consul, who may appoint and
+// is held by scipio; cato held the consulship before.
+func succession(w map[string]any) {
+	for _, o := range w["offices"].([]any) {
+		m := o.(map[string]any)
+		switch m["id"] {
+		case "consul":
+			m["constituted"] = true
+			m["competences"] = append(m["competences"].([]any), "appoint")
+		case "tribunus":
+			m["constituted"] = true
+		case "censor":
+			m["appointed_by"] = []any{"consul"}
+		}
+	}
+	w["people"] = append(w["people"].([]any),
+		map[string]any{"id": "scipio", "status": "patricius", "born": 1},
+		map[string]any{"id": "cato", "status": "patricius", "born": 1},
+	)
+	w["facts"] = append(w["facts"].([]any),
+		map[string]any{"id": "occ_scipio", "p": "occupies", "a": []any{"scipio", "consul", 1, 99}, "by": "scenario"},
+		map[string]any{"id": "occ_cato", "p": "occupies", "a": []any{"cato", "consul", 1, 5}, "by": "scenario"},
+	)
+}
+
+func appointment(person string) Config {
+	cfg := adoption("metellus", "censor")
+	stub := cfg.Actors.(actors.Stub)
+	stub.Script = append(stub.Script, actors.Attempt{Period: 12, Actor: "scipio", Office: "consul", Kind: "appoint", Subject: person,
+		Fact: []string{"appointment", person, "censor", "13", "14"}})
+	cfg.Actors = stub
+	return cfg
+}
+
+// The consul appoints the adopted Clodius censor: a plebeian without the right
+// of honours and without a prior consulship holds the office — usurpation. The
+// same appointment of cato, a former consul, is lawful.
+func TestAdvance_AppointmentWithoutAdmissionIsUsurpation(t *testing.T) {
+	s := play(t, eligibilityLived(t, succession), appointment("clodius"), 4)
+	if !has(s.Journal, journal.Execution, 13, "clodius censor") {
+		dump(t, s.Journal)
+		t.Fatal("the appointment in force must make clodius hold the censorship")
+	}
+	if !has(s.Journal, journal.Usurpation, 13, "actor=clodius office=censor") {
+		dump(t, s.Journal)
+		t.Fatal("clodius is not eligible for the censorship: usurpation")
+	}
+
+	s = play(t, eligibilityLived(t, succession), appointment("cato"), 4)
+	if !has(s.Journal, journal.Execution, 13, "cato censor") || len(s.Journal.Of(journal.Usurpation)) != 0 {
+		dump(t, s.Journal)
+		t.Fatal("cato is eligible: holder without usurpation")
+	}
+}

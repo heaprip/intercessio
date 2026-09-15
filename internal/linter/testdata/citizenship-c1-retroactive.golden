@@ -1,4 +1,7 @@
 competence-gap             linter  judge                  judge is required by r_repair, r_offense and no office may perform judge
+dangling-succession        linter  censor                 no method of succession is declared
+dangling-succession        linter  praetor                no method of succession is declared
+dangling-succession        linter  tribunus               no method of succession is declared
 dead-conclusion            linter  holds_right            holds_right is concluded by r_rights and consumed by no rule
 empty-right                linter  ius_commercii          right ius_commercii enters no condition
 empty-right                linter  ius_conubii            right ius_conubii enters no condition
