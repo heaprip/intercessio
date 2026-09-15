@@ -311,6 +311,7 @@ flowchart TD
 | [[docs/design/stages/live-actors\|live-actors]] | `llm-runtime`, LLM-реализация `actors` | playable-case |
 | [[docs/design/stages/self-generated-cases\|self-generated-cases]] | `impact` как источник поводов | corpus-checks, playable-case |
 | [[docs/design/stages/stack-of-proposals\|stack-of-proposals]] | `agenda` | corpus-checks, self-generated-cases |
+| [[docs/design/stages/acts-and-offices\|acts-and-offices]] | акт в `case`, назначение, узурпация | playable-case, corpus-checks |
 | [[docs/design/stages/external-view\|external-view]] | `api`, `report`, `front` | playable-case, corpus-checks |
 | [[docs/design/stages/censor-stand\|censor-stand]] | `censor` | playable-case |
 | [[docs/design/stages/durable-storage\|durable-storage]] | `storage` | playable-case |
