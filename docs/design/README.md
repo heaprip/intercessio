@@ -212,6 +212,13 @@ flowchart TD
   report --> impact
   api --> turn
   api --> report
+  api --> agenda
+  api --> linter
+  api --> censor
+  api --> power_graph
+  api --> scenario
+  api --> entitlement
+  api --> actors
   front --> api
   censor --> journal
   censor --> corpus
