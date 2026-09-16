@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intercessio</title>
+<style>
+  :root { --ink:#1d1b16; --muted:#6b6457; --line:#d8d0bf; --paper:#f7f3ea; --card:#fffdf8; --accent:#8a3b12; --ok:#2f6b3a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.45 Georgia, "Times New Roman", serif; color:var(--ink); background:var(--paper); }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:20px; margin:0 12px 0 0; letter-spacing:.04em; }
+  main { display:grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap:16px; padding:16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px 14px; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 8px; }
+  button, select, input { font: inherit; }
+  button { border:1px solid var(--line); background:#fff; border-radius:4px; padding:3px 10px; cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button[aria-pressed="true"] { outline:2px solid var(--accent); }
+  .card { border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin:0 0 8px; }
+  .card .slug { font-family: ui-monospace, Menlo, monospace; font-size:13px; color:var(--accent); }
+  .muted { color:var(--muted); font-size:13px; }
+  ul { margin:4px 0; padding-left:18px; }
+  li { margin:2px 0; }
+  code, pre { font-family: ui-monospace, Menlo, monospace; font-size:12.5px; }
+  pre { white-space:pre-wrap; background:#faf6ee; border:1px solid var(--line); padding:8px; border-radius:4px; overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  td, th { border-bottom:1px solid var(--line); text-align:left; padding:3px 4px; vertical-align:top; }
+  .inactive { color:var(--muted); text-decoration:line-through; }
+  .error { color:#a11; }
+  .clickable { cursor:pointer; text-decoration:underline dotted; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intercessio</h1>
+  <label>Сценарий <select id="scenario"></select></label>
+  <button id="start">Начать партию</button>
+  <span id="period" class="muted"></span>
+  <button id="prev" title="Предыдущий период">←</button>
+  <button id="next" title="Следующий период">→</button>
+  <button id="advance" class="primary">Разобрать стопку и прожить период</button>
+  <span id="error" class="error"></span>
+</header>
+<main>
+  <div>
+    <section id="stackBox"><h2>Стопка</h2><div id="stack" class="muted">Начните партию.</div></section>
+    <section><h2>Отчёт прожитого периода</h2><div id="report" class="muted">Отчёт появится после первого периода.</div></section>
+    <section><h2>Трасса вывода</h2>
+      <form id="traceForm">
+        <input id="atom" size="32" value="entitled(marcus, civis)"> в периоде <input id="tracePeriod" size="4">
+        <button>Показать</button>
+      </form>
+      <pre id="trace" class="muted">Щёлкните по имени человека или введите атом.</pre>
+    </section>
+  </div>
+  <div>
+    <section><h2>Стенд</h2><div id="stand" class="muted">—</div></section>
+    <section><h2>Граф власти</h2><div id="graph"></div></section>
+    <section><h2>Находки</h2><div id="findings"></div></section>
+    <section><h2>Журнал</h2><pre id="journal" class="muted">—</pre></section>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let game = null, view = null, current = null;
+
+async function api(method, path, body) {
+  $("error").textContent = "";
+  const res = await fetch(path, { method, headers: {"Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json();
+  if (!res.ok) { $("error").textContent = data.error || res.status; throw new Error(data.error); }
+  return data;
+}
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "onclick") e.onclick = v; else e.setAttribute(k, v); }
+  for (const k of kids) e.append(k instanceof Node ? k : document.createTextNode(k));
+  return e;
+}
+
+function person(name) {
+  return el("span", { class: "clickable", onclick: () => { $("atom").value = `status(${name}, civis)`; traceNow(); } }, name);
+}
+
+function people(list) {
+  const span = el("span");
+  (list || []).forEach((p, i) => { if (i) span.append(", "); span.append(person(p)); });
+  return span;
+}
+
+function render(v) {
+  view = v; game = v.game; current = v.current;
+  $("period").textContent = `период ${v.period}` + (v.lived ? " (прожит)" : " (ждёт разбора)");
+  $("tracePeriod").value = $("tracePeriod").value || v.period;
+  $("advance").disabled = v.lived;
+  $("prev").disabled = false; $("next").disabled = v.period >= v.current;
+
+  const stack = $("stack"); stack.textContent = ""; stack.classList.remove("muted");
+  if (!v.stack.length) stack.append(el("p", { class: "muted" }, "Стопка пуста."));
+  for (const c of v.stack) {
+    const card = el("div", { class: "card" },
+      el("div", {}, el("span", { class: "slug" }, c.failure || "событие"), " · ", c.root, el("span", { class: "muted" }, `  охват ${c.reach}, счёт ${c.score}` + (c.reminder ? ", напоминание" : "") + (c.persists ? ", правка не помогла" : ""))),
+      el("div", {}, c.proposal + (c.amendment ? "" : " — норму пишет auctor")),
+      el("div", { class: "muted" }, "люди: ", people(c.people)));
+    if (!v.lived) {
+      for (const [choice, label] of [["accept", "принять"], ["reject", "отклонить"]]) {
+        const b = el("button", { "aria-pressed": String(c.choice === choice), onclick: async () => render(await api("POST", `/api/games/${game}/decisions`, { [c.key]: choice })) }, label);
+        if (choice === "accept" && !c.amendment) b.disabled = true;
+        card.append(" ", b);
+      }
+    } else if (c.choice) card.append(el("div", { class: "muted" }, "решение: " + c.choice));
+    const ev = el("details", {}, el("summary", { class: "muted" }, "свидетельство"), el("ul", {}, ...c.evidence.map(x => el("li", {}, el("code", {}, x)))));
+    card.append(ev);
+    stack.append(card);
+  }
+  if (v.overflow.length) stack.append(el("p", { class: "muted" }, `не вошло в стопку: ${v.overflow.length}, отложено до нового свидетельства: ${v.held}`));
+
+  const report = $("report"); report.textContent = "";
+  if (!v.report.length) report.append(el("p", { class: "muted" }, v.lived ? "Пусто." : "Период ещё не прожит."));
+  for (const s of v.report) report.append(el("h3", {}, s.title), el("ul", {}, ...s.lines.map(l => el("li", {}, l))));
+
+  const stand = $("stand"); stand.textContent = "";
+  if (!v.stand.length) stand.append(el("span", { class: "muted" }, "Стенд считается со второго периода."));
+  else stand.append(el("table", {}, ...v.stand.map(a => el("tr", {}, el("td", {}, a.name), el("td", {}, a.value.toFixed(2)), el("td", { class: "muted" }, a.of)))));
+
+  const graph = $("graph"); graph.textContent = "";
+  graph.append(el("table", {}, el("tr", {}, el("th", {}, "должность"), el("th", {}, "занимают"), el("th", {}, "вправе")),
+    ...v.graph.offices.map(o => el("tr", {}, el("td", {}, o.id), el("td", {}, o.holders && o.holders.length ? people(o.holders) : el("span", { class: "muted" }, "вакантна")), el("td", {}, (o.competences || []).join(", "))))));
+  if (v.graph.edges.length) graph.append(el("ul", {}, ...v.graph.edges.map(e => el("li", { class: e.active ? "" : "inactive" }, `${e.from} ${label(e.kind)} ${e.to} (${e.via})`))));
+
+  const findings = $("findings"); findings.textContent = "";
+  findings.append(el("ul", {}, ...v.findings.map(f => el("li", {}, el("span", { class: "slug" }, f.failure), " ", el("span", { class: "muted" }, `[${f.channel}] ${f.place}: `), f.message, f.people && f.people.length ? el("span", {}, " — ", people(f.people)) : ""))));
+
+  $("journal").textContent = v.journal.length ? v.journal.join("\n") : "—";
+}
+
+function label(kind) { return { restrains: "сдерживает", admits: "открывает допуск в", appoints: "назначает" }[kind] || kind; }
+
+async function traceNow() {
+  const q = new URLSearchParams({ period: $("tracePeriod").value, atom: $("atom").value });
+  const t = await api("GET", `/api/games/${game}/trace?${q}`);
+  $("trace").textContent = t.trace; $("trace").classList.remove("muted");
+}
+
+$("start").onclick = async () => render(await api("POST", "/api/games", { scenario: $("scenario").value }));
+$("advance").onclick = async () => render(await api("POST", `/api/games/${game}/advance`));
+$("prev").onclick = async () => render(await api("GET", `/api/games/${game}/periods/${view.period - 1}`));
+$("next").onclick = async () => render(await api("GET", `/api/games/${game}/periods/${view.period + 1}`));
+$("traceForm").onsubmit = e => { e.preventDefault(); if (game) traceNow(); };
+
+api("GET", "/api/scenarios").then(names => {
+  for (const n of names) $("scenario").append(el("option", n === "playable" ? { selected: "" } : {}, n));
+});
+</script>
+</body>
+</html>
