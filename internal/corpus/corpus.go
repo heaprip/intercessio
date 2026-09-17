@@ -139,6 +139,27 @@ func (v Version) Amend(n Norm) Version {
 	return out
 }
 
+// Order returns a new version with declared defeat pairs added. A pair
+// reversing a declared one replaces it: the auctor changed his mind about which
+// rule wins.
+func (v Version) Order(pairs []deduction.Defeat) Version {
+	out := v.next()
+	out.Norms = v.Norms
+	out.Defeats = nil
+	touched := map[[2]string]bool{}
+	for _, p := range pairs {
+		touched[[2]string{p.Over, p.Under}] = true
+		touched[[2]string{p.Under, p.Over}] = true
+	}
+	for _, d := range v.Defeats {
+		if !touched[[2]string{d.Over, d.Under}] {
+			out.Defeats = append(out.Defeats, d)
+		}
+	}
+	out.Defeats = append(out.Defeats, pairs...)
+	return out
+}
+
 // Norm returns the open text of a norm.
 func (v Version) Norm(id string) (Norm, bool) {
 	for _, n := range v.Norms {

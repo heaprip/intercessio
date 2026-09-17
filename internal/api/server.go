@@ -11,16 +11,19 @@ import (
 	"sync"
 	"testing/fstest"
 
+	"github.com/heaprip/intercessio/internal/agenda"
 	"github.com/heaprip/intercessio/internal/scenario"
 )
 
 // Server holds games in memory and serves them over HTTP.
 type Server struct {
 	// Root is the directory with schema.json and one directory per scenario.
-	Root  string
-	mu    sync.Mutex
-	games map[string]*Game
-	next  int
+	Root string
+	// Advisor chooses amendments for cards; nil is the stub.
+	Advisor agenda.Advisor
+	mu      sync.Mutex
+	games   map[string]*Game
+	next    int
 }
 
 var scenarioName = regexp.MustCompile(`^[a-z0-9-]+$`)
@@ -141,7 +144,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 	s.next++
 	id := fmt.Sprintf("g%d", s.next)
 	s.mu.Unlock()
-	g, err := NewGame(id, sc)
+	g, err := NewGame(id, sc, s.Advisor)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, err.Error())
 		return

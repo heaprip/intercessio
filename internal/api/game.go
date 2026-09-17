@@ -41,6 +41,7 @@ type Game struct {
 	pending  pending
 	previous *linter.Report
 	last     []journal.Entry
+	advisor  agenda.Advisor
 }
 
 type pending struct {
@@ -52,8 +53,12 @@ type pending struct {
 }
 
 // NewGame starts a game at the scenario's start period with stub participants.
-func NewGame(id string, s *scenario.Scenario) (*Game, error) {
+func NewGame(id string, s *scenario.Scenario, advisor agenda.Advisor) (*Game, error) {
+	if advisor == nil {
+		advisor = agenda.StubAdvisor{}
+	}
 	g := &Game{
+		advisor:  advisor,
 		id:       id,
 		scenario: s,
 		cfg:      turn.Config{Strategy: entitlement.Hierarchy{}, Actors: actors.Stub{}},
@@ -99,7 +104,8 @@ func (g *Game) prepare() error {
 		p.stand = &stand
 		findings = stand.Findings
 	}
-	p.stack = agenda.Build(agenda.Input{Lint: lint, Practice: findings, Entries: g.last, Corpus: st.Corpus, Now: st.Period, Memory: g.memory, Preset: g.preset})
+	p.stack = agenda.Build(agenda.Input{Lint: lint, Practice: findings, Entries: g.last, Corpus: st.Corpus, Now: st.Period, Memory: g.memory, Preset: g.preset,
+		Roles: g.scenario.Roles, Facts: st.Facts, Strategy: g.cfg.Strategy, Advisor: g.advisor})
 	g.pending = p
 	return nil
 }
@@ -123,18 +129,36 @@ type View struct {
 
 // CardView is a card with the auctor's choice, if made.
 type CardView struct {
-	Key       string   `json:"key"`
-	Failure   string   `json:"failure"`
-	Root      string   `json:"root"`
-	Reach     int      `json:"reach"`
-	Score     int      `json:"score"`
-	Proposal  string   `json:"proposal"`
-	Amendment bool     `json:"amendment"`
-	People    []string `json:"people"`
-	Evidence  []string `json:"evidence"`
-	Reminder  bool     `json:"reminder"`
-	Persists  bool     `json:"persists"`
-	Choice    string   `json:"choice"`
+	Key       string       `json:"key"`
+	Failure   string       `json:"failure"`
+	Root      string       `json:"root"`
+	Reach     int          `json:"reach"`
+	Score     int          `json:"score"`
+	Proposal  string       `json:"proposal"`
+	Amendment bool         `json:"amendment"`
+	People    []string     `json:"people"`
+	Evidence  []string     `json:"evidence"`
+	Reminder  bool         `json:"reminder"`
+	Persists  bool         `json:"persists"`
+	Choice    string       `json:"choice"`
+	Options   []OptionView `json:"options"`
+	Advice    AdviceView   `json:"advice"`
+}
+
+// OptionView is a drafted amendment with the linter's preview.
+type OptionView struct {
+	Summary  string `json:"summary"`
+	Findings int    `json:"findings"`
+	Fixes    bool   `json:"fixes"`
+}
+
+// AdviceView is the advisor's choice.
+type AdviceView struct {
+	By       string `json:"by"`
+	Index    int    `json:"index"`
+	Reason   string `json:"reason"`
+	Model    string `json:"model"`
+	Unserved string `json:"unserved"`
 }
 
 // FindingView is one finding of the linter or the censor.
@@ -184,9 +208,14 @@ type SectionView struct {
 func cards(cs []agenda.Card, chosen map[string]string) []CardView {
 	out := []CardView{}
 	for _, c := range cs {
-		out = append(out, CardView{Key: c.Key, Failure: c.Failure, Root: c.Root, Reach: c.Reach, Score: c.Score,
+		v := CardView{Key: c.Key, Failure: c.Failure, Root: c.Root, Reach: c.Reach, Score: c.Score,
 			Proposal: c.Proposal.Summary, Amendment: len(c.Proposal.Amendments) > 0, People: c.People, Evidence: c.Evidence,
-			Reminder: c.Reminder, Persists: c.Persists, Choice: chosen[c.Key]})
+			Reminder: c.Reminder, Persists: c.Persists, Choice: chosen[c.Key], Options: []OptionView{},
+			Advice: AdviceView{c.Advice.By, c.Advice.Index, c.Advice.Reason, c.Advice.Model, c.Advice.Unserved}}
+		for _, o := range c.Options {
+			v.Options = append(v.Options, OptionView{o.Proposal.Summary, o.Findings, o.Fixes})
+		}
+		out = append(out, v)
 	}
 	return out
 }
@@ -257,16 +286,17 @@ func (g *Game) Period(n int) (View, error) {
 func (g *Game) Decide(choices map[string]string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	in := map[string]bool{}
+	in := map[string]agenda.Card{}
 	for _, c := range g.pending.stack.Cards {
-		in[c.Key] = true
+		in[c.Key] = c
 	}
 	for key, choice := range choices {
-		if !in[key] {
+		c, ok := in[key]
+		if !ok {
 			return fmt.Errorf("card %q is not in the stack of period %d", key, g.state.Period)
 		}
-		if choice != "accept" && choice != "reject" {
-			return fmt.Errorf("choice for %q must be accept or reject, got %q", key, choice)
+		if _, err := amendmentsOf(c, choice); err != nil {
+			return err
 		}
 		g.pending.chosen[key] = choice
 	}
@@ -281,11 +311,9 @@ func (g *Game) Advance() (View, error) {
 	p := g.pending
 	script := turn.Script{}
 	for _, c := range p.stack.Cards {
-		accepted := p.chosen[c.Key] == "accept" && len(c.Proposal.Amendments) > 0
-		if accepted {
-			script[g.state.Period] = append(script[g.state.Period], c.Proposal.Amendments...)
-		}
-		g.memory = g.memory.Record(c, g.state.Period, accepted)
+		ams, _ := amendmentsOf(c, p.chosen[c.Key])
+		script[g.state.Period] = append(script[g.state.Period], ams...)
+		g.memory = g.memory.Record(c, g.state.Period, len(ams) > 0)
 	}
 	cfg := g.cfg
 	cfg.Auctor = script
@@ -308,6 +336,24 @@ func (g *Game) Advance() (View, error) {
 		return View{}, err
 	}
 	return g.pendingView(), nil
+}
+
+// amendmentsOf reads a choice: accept takes the advised proposal, accept:N the
+// N-th option, reject or nothing takes none.
+func amendmentsOf(c agenda.Card, choice string) ([]turn.Amendment, error) {
+	switch {
+	case choice == "" || choice == "reject":
+		return nil, nil
+	case choice == "accept":
+		return c.Proposal.Amendments, nil
+	case strings.HasPrefix(choice, "accept:"):
+		n, err := strconv.Atoi(strings.TrimPrefix(choice, "accept:"))
+		if err != nil || n < 1 || n > len(c.Options) {
+			return nil, fmt.Errorf("card %q has options 1 to %d, got %q", c.Key, len(c.Options), choice)
+		}
+		return c.Options[n-1].Proposal.Amendments, nil
+	}
+	return nil, fmt.Errorf("choice for %q must be accept, accept:N or reject, got %q", c.Key, choice)
 }
 
 // Trace explains a conclusion at a period: the rule tree under the current

@@ -112,7 +112,12 @@ func main() {
 				fmt.Println(stand)
 				practice = stand.Findings
 			}
-			stack = agenda.Build(agenda.Input{Lint: lint, Practice: practice, Entries: last, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset})
+			var advisor agenda.Advisor = agenda.StubAdvisor{}
+			if rt != nil {
+				advisor = agenda.ModelAdvisor{Runtime: rt, Spec: llmruntime.Models[*model]}
+			}
+			stack = agenda.Build(agenda.Input{Lint: lint, Practice: practice, Entries: last, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset,
+				Roles: s.Roles, Facts: st.Facts, Strategy: cfg.Strategy, Advisor: advisor})
 			script := turn.Script{}
 			fmt.Printf("stack, period %d: %d cards, %d overflow, %d held\n", st.Period, len(stack.Cards), len(stack.Overflow), len(stack.Held))
 			for _, c := range stack.Cards {
@@ -122,6 +127,13 @@ func main() {
 					script[st.Period] = append(script[st.Period], c.Proposal.Amendments...)
 				}
 				fmt.Printf("  %-6s %s\n", verdict, c)
+				if len(c.Options) > 0 {
+					note := ""
+					if c.Advice.Unserved != "" {
+						note = " (unserved: " + c.Advice.Unserved + ")"
+					}
+					fmt.Printf("         advice by %s%s: option %d of %d — %s\n", c.Advice.By, note, c.Advice.Index, len(c.Options), c.Advice.Reason)
+				}
 				memory = memory.Record(c, st.Period, verdict == "accept")
 			}
 			cfg.Auctor = script

@@ -278,14 +278,10 @@ func (p *period_) amend(ams []Amendment) error {
 	after := apply(before, ams)
 	from := p.now
 	for _, a := range ams {
-		subject := "repeal " + a.Repeal
-		if a.Enact != nil {
-			subject = "enact " + a.Enact.ID
-			if a.Enact.InForce < from {
-				from = a.Enact.InForce
-			}
+		if a.Enact != nil && a.Enact.InForce < from {
+			from = a.Enact.InForce
 		}
-		p.add(nil, []journal.Entry{p.entry(journal.Amendment, "auctor", "", subject, fmt.Sprintf("v%d", after.Number), "")})
+		p.add(nil, []journal.Entry{p.entry(journal.Amendment, "auctor", "", a.Subject(), fmt.Sprintf("v%d", after.Number), "")})
 	}
 	imp, err := impact.Compute(p.cfg.Strategy, before, after, p.facts, from, p.now)
 	if err != nil {

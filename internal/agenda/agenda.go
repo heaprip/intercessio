@@ -12,6 +12,9 @@ import (
 	"strings"
 
 	"github.com/heaprip/intercessio/internal/corpus"
+	"github.com/heaprip/intercessio/internal/deduction"
+	"github.com/heaprip/intercessio/internal/entitlement"
+	"github.com/heaprip/intercessio/internal/facts"
 	"github.com/heaprip/intercessio/internal/journal"
 	"github.com/heaprip/intercessio/internal/linter"
 	"github.com/heaprip/intercessio/internal/period"
@@ -39,6 +42,12 @@ type Card struct {
 	Reminder bool
 	// Persists: the card was accepted earlier and its finding is still there.
 	Persists bool
+	// Places are the places of the findings the card gathers.
+	Places []string
+	// Options is the menu of drafted amendments with the linter's preview, and
+	// Advice the advisor's choice from it; the chosen option is the Proposal.
+	Options []Option
+	Advice  Advice
 }
 
 func (c Card) String() string {
@@ -109,6 +118,12 @@ type Input struct {
 	Now      period.Period
 	Memory   Memory
 	Preset   Preset
+	// With Strategy set, cards of the stack get a menu of amendments previewed
+	// by the linter over Roles and Facts, and Advisor chooses from it.
+	Roles    map[string]deduction.Role
+	Facts    []facts.Fact
+	Strategy entitlement.Strategy
+	Advisor  Advisor
 }
 
 // Stack is the result: the cards to decide, those that did not fit and go to
@@ -124,7 +139,7 @@ type Stack struct {
 func Build(in Input) Stack {
 	byKey := map[string]*Card{}
 	var order []string
-	add := func(failure, root, channel, evidence string, people ...string) {
+	add := func(failure, root, channel, place, evidence string, people ...string) {
 		if evidence == "" {
 			return
 		}
@@ -137,6 +152,9 @@ func Build(in Input) Stack {
 		}
 		c.Reach++
 		c.Evidence = append(c.Evidence, evidence)
+		if place != "" {
+			c.Places = append(c.Places, place)
+		}
 		for _, p := range people {
 			if p != "" && !contains(c.People, p) {
 				c.People = append(c.People, p)
@@ -149,20 +167,20 @@ func Build(in Input) Stack {
 			if f.Failure == "" {
 				continue // a remark on form is not a reason to change the law
 			}
-			add(f.Failure, root(f), string(f.Channel), f.String(), f.People...)
+			add(f.Failure, root(f), string(f.Channel), f.Place, f.String(), f.People...)
 		}
 	}
 	for _, f := range in.Practice {
-		add(f.Failure, root(f), string(f.Channel), f.String(), f.People...)
+		add(f.Failure, root(f), string(f.Channel), f.Place, f.String(), f.People...)
 	}
 	for _, e := range in.Entries {
 		switch {
 		case e.Kind == journal.Conflict:
-			add("judge-in-own-cause", e.Office, "journal", e.String(), e.Actor)
+			add("judge-in-own-cause", e.Office, "journal", "", e.String(), e.Actor)
 		case e.Kind == journal.Grievance && e.Outcome == "queued":
-			add("", "grievances", "recount", e.String(), e.Actor)
+			add("", "grievances", "recount", "", e.String(), e.Actor)
 		case e.Kind == journal.NonLiquet:
-			add("", "non-liquet "+e.Basis.Rule, "journal", e.String(), firstWord(e.Subject))
+			add("", "non-liquet "+e.Basis.Rule, "journal", "", e.String(), firstWord(e.Subject))
 		}
 	}
 
@@ -203,7 +221,34 @@ func Build(in Input) Stack {
 		}
 		st.Cards = append(st.Cards, c)
 	}
+	for i := range st.Cards {
+		advise(&st.Cards[i], in)
+	}
 	return st
+}
+
+// advise drafts the menu for a card of the stack, previews it and lets the
+// advisor choose. Only cards that reach the auctor are advised: a preview lints
+// the corpus once per option.
+func advise(c *Card, in Input) {
+	if in.Strategy == nil || in.Lint == nil {
+		return
+	}
+	drafted := options(*c, in)
+	if len(drafted) == 0 {
+		return
+	}
+	advisor := in.Advisor
+	if advisor == nil {
+		advisor = StubAdvisor{}
+	}
+	c.Options = preview(*c, in, drafted)
+	c.Advice = advisor.Advise(*c, c.Options, countFindings(in.Lint))
+	if c.Advice.Index > 0 {
+		c.Proposal = c.Options[c.Advice.Index-1].Proposal
+		return
+	}
+	c.Proposal = Proposal{Summary: c.Proposal.Summary + "; the advisor takes none of the drafted amendments"}
 }
 
 // root groups findings that one fix would answer: every unordered conflict over

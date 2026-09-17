@@ -68,6 +68,20 @@ func TestAPI_GameThroughHTTP(t *testing.T) {
 		t.Fatalf("a card not in the stack must be refused: %d", code)
 	}
 
+	for _, c := range v.Stack {
+		if len(c.Options) > 0 {
+			if c.Advice.By != "stub" {
+				t.Fatalf("a card with options must carry advice: %+v", c)
+			}
+			if code := call(t, srv, "POST", "/api/games/"+id+"/decisions", map[string]string{c.Key: "accept:1"}, &v); code != http.StatusOK {
+				t.Fatalf("accept an option: %d", code)
+			}
+			if code := call(t, srv, "POST", "/api/games/"+id+"/decisions", map[string]string{c.Key: "accept:99"}, &bad); code != http.StatusUnprocessableEntity {
+				t.Fatalf("an option out of range must be refused: %d", code)
+			}
+			break
+		}
+	}
 	if code := call(t, srv, "POST", "/api/games/"+id+"/advance", nil, &v); code != http.StatusOK || v.Period != 31 {
 		t.Fatalf("advance: %d period %d", code, v.Period)
 	}

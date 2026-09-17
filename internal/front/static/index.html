@@ -105,8 +105,17 @@ function render(v) {
       el("div", {}, el("span", { class: "slug" }, c.failure || "событие"), " · ", c.root, el("span", { class: "muted" }, `  охват ${c.reach}, счёт ${c.score}` + (c.reminder ? ", напоминание" : "") + (c.persists ? ", правка не помогла" : ""))),
       el("div", {}, c.proposal + (c.amendment ? "" : " — норму пишет auctor")),
       el("div", { class: "muted" }, "люди: ", people(c.people)));
+    if (c.options.length) {
+      const adv = c.advice;
+      card.append(el("div", { class: "muted" }, `совет (${adv.by}${adv.model ? " " + adv.model : ""}${adv.unserved ? ", модель не ответила: " + adv.unserved : ""}): ` + (adv.index ? `вариант ${adv.index}` : "ни один") + (adv.reason ? " — " + adv.reason : "")));
+      card.append(el("ol", {}, ...c.options.map((o, i) => {
+        const li = el("li", {}, o.summary, el("span", { class: "muted" }, o.findings < 0 ? " — ломает корпус" : ` — после неё находок ${o.findings}${o.fixes ? ", снимает эту" : ""}`));
+        if (!v.lived) li.append(" ", el("button", { "aria-pressed": String(c.choice === `accept:${i + 1}`), onclick: async () => render(await api("POST", `/api/games/${game}/decisions`, { [c.key]: `accept:${i + 1}` })) }, "выбрать"));
+        return li;
+      })));
+    }
     if (!v.lived) {
-      for (const [choice, label] of [["accept", "принять"], ["reject", "отклонить"]]) {
+      for (const [choice, label] of [["accept", c.options.length ? "принять совет" : "принять"], ["reject", "отклонить"]]) {
         const b = el("button", { "aria-pressed": String(c.choice === choice), onclick: async () => render(await api("POST", `/api/games/${game}/decisions`, { [c.key]: choice })) }, label);
         if (choice === "accept" && !c.amendment) b.disabled = true;
         card.append(" ", b);

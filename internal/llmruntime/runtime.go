@@ -47,6 +47,8 @@ var Models = map[string]Model{
 		Params: map[string]any{"thinking": map[string]any{"type": "disabled"}}},
 	"deepseek-low": {Name: "deepseek-low", ID: "deepseek/deepseek-v4.1-flash", Provider: "DeepSeek",
 		Params: map[string]any{"reasoning_effort": "low"}},
+	"granite-4.2-8b": {Name: "granite-4.2-8b", ID: "ibm-granite/granite-4.2-8b", Provider: "DeepInfra"},
+	"qwen3.7-flash":  {Name: "qwen3.7-flash", ID: "qwen/qwen3.7-flash", Provider: "Alibaba"},
 }
 
 // Request is everything that determines a call.
@@ -112,7 +114,7 @@ type Runtime struct {
 
 // New builds a runtime over existing records.
 func New(mode Mode, url, key string, maxRub float64, records []Record) *Runtime {
-	rt := &Runtime{Mode: mode, URL: url, Key: key, MaxRub: maxRub, HTTP: &http.Client{Timeout: 5 * time.Minute}, records: map[string]Record{}}
+	rt := &Runtime{Mode: mode, URL: url, Key: key, MaxRub: maxRub, HTTP: &http.Client{Timeout: 2 * time.Minute}, records: map[string]Record{}}
 	for _, r := range records {
 		rt.records[r.Hash] = r
 	}

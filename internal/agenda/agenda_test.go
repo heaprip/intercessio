@@ -2,6 +2,8 @@ package agenda
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	"github.com/heaprip/intercessio/internal/entitlement"
 	"github.com/heaprip/intercessio/internal/journal"
 	"github.com/heaprip/intercessio/internal/linter"
+	"github.com/heaprip/intercessio/internal/llmruntime"
 	"github.com/heaprip/intercessio/internal/scenario"
 	"github.com/heaprip/intercessio/internal/turn"
 )
@@ -78,7 +81,8 @@ func play(t *testing.T, periods int) []round {
 		if err != nil {
 			t.Fatal(err)
 		}
-		stack := Build(Input{Lint: lint, Entries: entries, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset})
+		stack := Build(Input{Lint: lint, Entries: entries, Corpus: st.Corpus, Now: st.Period, Memory: memory, Preset: preset,
+			Roles: s.Roles, Facts: st.Facts, Strategy: cfg.Strategy, Advisor: StubAdvisor{}})
 		script := turn.Script{}
 		for _, c := range stack.Cards {
 			script[st.Period] = append(script[st.Period], c.Proposal.Amendments...)
@@ -160,6 +164,9 @@ func TestStack_GameGoesThroughStacks(t *testing.T) {
 			t.Fatalf("period %d: the accepted re-enactment did not remove the finding", r.stack.Period)
 		}
 		for _, c := range r.stack.Cards {
+			if c.Persists {
+				continue // an accepted amendment that did not remove its finding comes back by design
+			}
 			for _, prev := range rounds[i-1].stack.Cards {
 				if c.Key == prev.Key && c.Reach <= prev.Reach && subset(c.People, prev.People) {
 					t.Fatalf("period %d: %s came back without new evidence", r.stack.Period, c.Key)
@@ -167,8 +174,14 @@ func TestStack_GameGoesThroughStacks(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(rounds[0].entries[0].String(), "enact C2") {
-		t.Fatalf("the accepted card must amend at the start of the period: %s", rounds[0].entries[0])
+	enacted := false
+	for _, e := range rounds[0].entries {
+		if e.Kind == journal.Amendment && strings.Contains(e.Subject, "enact C2") {
+			enacted = true
+		}
+	}
+	if !enacted {
+		t.Fatalf("the accepted card must amend C2 at the start of the period: %v", rounds[0].entries)
 	}
 }
 
@@ -213,5 +226,84 @@ func TestStack_ReminderAndPersistence(t *testing.T) {
 	s = Build(Input{Lint: lint, Now: 31, Memory: accepted, Preset: p})
 	if len(s.Cards) != 1 || !s.Cards[0].Persists {
 		t.Fatalf("an accepted card with its finding still there must come back: %+v", s)
+	}
+}
+
+func firstStack(t *testing.T, advisor Advisor) Stack {
+	t.Helper()
+	s, st := load(t)
+	strategy := entitlement.Hierarchy{}
+	lint, err := linter.Lint(linter.Input{Corpus: st.Corpus, Roles: s.Roles, Facts: st.Facts, Strategy: strategy, Now: st.Period})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return Build(Input{Lint: lint, Corpus: st.Corpus, Now: st.Period, Memory: Memory{}, Preset: preset,
+		Roles: s.Roles, Facts: st.Facts, Strategy: strategy, Advisor: advisor})
+}
+
+// The menu is drafted by code and previewed by the linter; the stub advisor
+// takes an option that leaves fewer findings.
+func TestStack_OptionsArePreviewedAndAdvised(t *testing.T) {
+	stack := firstStack(t, StubAdvisor{})
+	status := card(stack, "indeterminacy", "status")
+	if status == nil || len(status.Options) < 2 {
+		t.Fatalf("the conflicts over status must offer a rule to put first: %+v", status)
+	}
+	if status.Advice.By != "stub" || status.Advice.Index == 0 || len(status.Proposal.Amendments) == 0 {
+		t.Fatalf("the stub must choose an ordering: %+v", status.Advice)
+	}
+	judge := card(stack, "judge-in-own-cause", "grant_status")
+	if judge == nil || len(judge.Options) == 0 || !strings.Contains(judge.Options[0].Proposal.Summary, "the power to grant_status") {
+		t.Fatalf("a lone judge must offer another office the power: %+v", judge)
+	}
+	for _, o := range judge.Options {
+		if o.Fixes {
+			return
+		}
+	}
+	t.Fatalf("giving another held office the power must remove the finding: %+v", judge.Options)
+}
+
+// A model advisor is recorded, replays exactly without the network, and
+// offline falls back to the stub's choice.
+func TestModelAdvisor_RecordsAndReplays(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"provider": "Fake",
+			"choices":  []any{map[string]any{"message": map[string]any{"content": `{"option": 1, "reason": "the first is enough"}`}}},
+			"usage":    map[string]any{"cost": 0.001},
+		})
+	}))
+	defer srv.Close()
+	spec := llmruntime.Model{Name: "fake", ID: "fake/model", Provider: "Fake"}
+
+	live := llmruntime.New(llmruntime.Live, srv.URL, "k", 1, nil)
+	recorded := firstStack(t, ModelAdvisor{Runtime: live, Spec: spec})
+	advised := 0
+	for _, c := range recorded.Cards {
+		if len(c.Options) > 0 {
+			advised++
+			if c.Advice.By != "model" || c.Advice.Index != 1 || c.Advice.Reason != "the first is enough" {
+				t.Fatalf("model advice: %+v", c.Advice)
+			}
+		}
+	}
+	if advised == 0 || len(live.Written()) != advised {
+		t.Fatalf("advised %d cards with %d calls", advised, len(live.Written()))
+	}
+
+	replay := llmruntime.New(llmruntime.Replay, "", "", 0, live.Written())
+	replayed := firstStack(t, ModelAdvisor{Runtime: replay, Spec: spec})
+	for i := range recorded.Cards {
+		if recorded.Cards[i].Advice != replayed.Cards[i].Advice {
+			t.Fatalf("replay differs: %+v / %+v", recorded.Cards[i].Advice, replayed.Cards[i].Advice)
+		}
+	}
+
+	offline := firstStack(t, ModelAdvisor{Runtime: llmruntime.New(llmruntime.ForkOffline, "", "", 0, nil), Spec: spec})
+	for _, c := range offline.Cards {
+		if len(c.Options) > 0 && (c.Advice.By != "stub" || c.Advice.Unserved != "offline") {
+			t.Fatalf("offline advice must be the stub's: %+v", c.Advice)
+		}
 	}
 }

@@ -2,6 +2,9 @@ package turn
 
 import (
 	"sort"
+	"strings"
+
+	"github.com/heaprip/intercessio/internal/deduction"
 
 	"github.com/heaprip/intercessio/internal/corpus"
 	"github.com/heaprip/intercessio/internal/impact"
@@ -12,7 +15,28 @@ import (
 type Amendment struct {
 	Enact  *corpus.Norm // a new norm, or a new text of a norm with the same id
 	Repeal string
+	// Order declares which rule beats which.
+	Order []deduction.Defeat
 }
+
+// Subject names the amendment for the journal.
+func (a Amendment) Subject() string {
+	var parts []string
+	if a.Repeal != "" {
+		parts = append(parts, "repeal "+a.Repeal)
+	}
+	if a.Enact != nil {
+		parts = append(parts, "enact "+a.Enact.ID)
+	}
+	for _, d := range a.Order {
+		parts = append(parts, "order "+d.Over+" > "+d.Under)
+	}
+	return strings.Join(parts, "; ")
+}
+
+// Apply makes the version an amendment leads to; it is apply, exported for
+// those who preview an amendment before the auctor accepts it.
+func Apply(v corpus.Version, ams []Amendment) corpus.Version { return apply(v, ams) }
 
 // Auctor gives the amendments of a period. Prototype: a script; the stack of
 // proposals comes later.
@@ -38,6 +62,9 @@ func apply(v corpus.Version, ams []Amendment) corpus.Version {
 			} else {
 				v = v.With(*a.Enact)
 			}
+		}
+		if len(a.Order) > 0 {
+			v = v.Order(a.Order)
 		}
 	}
 	return v
