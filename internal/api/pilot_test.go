@@ -67,7 +67,9 @@ func TestPilot_AdvisorReplaysOffline(t *testing.T) {
 					advisorCalls++
 				}
 			}
-			if advised == 0 || advised != advisorCalls {
+			// the session may have grown since the pilot — a new finding can push a
+			// card out of the stack — but every advice it asks for is in the record
+			if advised == 0 || advised > advisorCalls {
 				t.Fatalf("advised %d cards, recorded %d advisor calls", advised, advisorCalls)
 			}
 		})

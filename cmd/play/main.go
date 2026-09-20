@@ -108,7 +108,7 @@ func main() {
 					fail(err)
 				}
 				stand := censor.Build(censor.Input{Journal: st.Journal, From: from, To: to, Graph: g, Corpus: st.Corpus,
-					People: powergraph.Domain(powergraph.Stored(st.Corpus, st.Facts, to), "person"), Preset: censor.Preset{NonLiquet: 0.3, Silent: 3}})
+					People: powergraph.Domain(powergraph.Stored(st.Corpus, st.Facts, to), "person"), Preset: censor.Preset{NonLiquet: 0.3, Silent: 3, Amendments: 4}})
 				fmt.Println(stand)
 				practice = stand.Findings
 			}

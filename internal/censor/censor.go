@@ -25,6 +25,9 @@ type Preset struct {
 	// Silent is how many periods a window must span before a norm none of whose
 	// rules took part in any decision is reported. Zero disables the finding.
 	Silent int
+	// Amendments is how many amendments a window may carry before the law
+	// changes too often to become known. Zero disables the finding.
+	Amendments int
 }
 
 // Axis is one measure of the stand with what it was counted from.
@@ -145,6 +148,12 @@ func Build(in Input) Stand {
 			Place:   fmt.Sprintf("periods %d..%d", in.From, in.To),
 			Message: fmt.Sprintf("%d of %d answered cases ended non liquet, above %.2f", nonLiquet, answered, in.Preset.NonLiquet),
 			People:  concerned,
+		})
+	}
+	if in.Preset.Amendments > 0 && amendments > in.Preset.Amendments {
+		st.Findings = append(st.Findings, linter.Finding{
+			Failure: "frequent-change", Code: "frequent-change", Channel: linter.Journal, Place: fmt.Sprintf("periods %d..%d", in.From, in.To),
+			Message: fmt.Sprintf("%d amendments in the window, above %d: the law changes faster than it can become known", amendments, in.Preset.Amendments),
 		})
 	}
 	if len(usurpers) > 0 {

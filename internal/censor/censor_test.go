@@ -221,3 +221,28 @@ func TestStand_Usurpation(t *testing.T) {
 		t.Fatalf("usurpation must be found: %v", out.Findings)
 	}
 }
+
+// Amendments above the preset in a window are frequent change; at the preset
+// they are not.
+func TestStand_FrequentChange(t *testing.T) {
+	j := journal.Journal{}
+	for p := 30; p <= 32; p++ {
+		for i := 0; i < 2; i++ {
+			j = j.Append(journal.Entry{Period: period.Period(p), Kind: journal.Amendment, Actor: "auctor"})
+		}
+	}
+	found := func(limit int) bool {
+		for _, f := range Build(Input{Journal: j, From: 30, To: 32, Preset: Preset{Amendments: limit}}).Findings {
+			if f.Failure == "frequent-change" {
+				return true
+			}
+		}
+		return false
+	}
+	if !found(4) {
+		t.Fatal("six amendments over a limit of four are frequent change")
+	}
+	if found(6) {
+		t.Fatal("six amendments at a limit of six are not")
+	}
+}

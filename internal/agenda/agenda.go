@@ -254,7 +254,7 @@ func advise(c *Card, in Input) {
 // root groups findings that one fix would answer: every unordered conflict over
 // the same predicate is one card, whatever pairs of rules make it.
 func root(f linter.Finding) string {
-	if f.Failure == "mass-non-liquet" || f.Failure == "usurpation" {
+	if f.Failure == "mass-non-liquet" || f.Failure == "usurpation" || f.Failure == "frequent-change" {
 		return "cases" // the window moves every period; the root does not
 	}
 	if f.Failure == "indeterminacy" {

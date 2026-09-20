@@ -68,7 +68,7 @@ func NewGame(id string, s *scenario.Scenario, advisor agenda.Advisor) (*Game, er
 			"retroactivity": 5, "taking-of-vested": 5, "usurpation": 5, "judge-in-own-cause": 4,
 			"circumventable-condition": 4, "unchecked-act": 4, "indeterminacy": 2,
 		}},
-		stand: censor.Preset{NonLiquet: 0.3, Silent: 3},
+		stand: censor.Preset{NonLiquet: 0.3, Silent: 3, Amendments: 4},
 	}
 	if err := g.prepare(); err != nil {
 		return nil, err
